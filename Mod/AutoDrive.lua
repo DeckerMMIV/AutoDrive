@@ -114,23 +114,20 @@ function AutoDrive:deleteMap()
 			local out_costTable = {};
 			local out_costString = "";
 			
-			local markerNamesTable = {};
+			--local markerNamesTable = {};
+			local markerNamesIdsTable = {};
 			local markerNames = "";
 			
 			local markerIDsTable = {};
 			local markerIDs = "";
 			
 			for i,p in pairs(g_currentMission.AutoDrive.mapWayPoints) do
-			
-				--idString = idString .. p.id .. ",";
+
 				idFullTable[i] = p.id;
-				--xString = xString .. p.x .. ",";
-				xTable[i] = p.x;
-				--yString = yString .. p.y .. ",";
-				yTable[i] = p.y;
-				--zString = zString .. p.z .. ",";
-				zTable[i] = p.z;
-				
+				xTable[i] = ("%.2f"):format(p.x);
+				yTable[i] = ("%.2f"):format(p.y);
+				zTable[i] = ("%.2f"):format(p.z);
+
 				--outString = outString .. table.concat(p.out, ",") .. ";";
 				outTable[i] = table.concat(p.out, ",");
 					
@@ -152,17 +149,29 @@ function AutoDrive:deleteMap()
 				--out_costString = out_costString .. table.concat(p.out_cost, ",") .. ";";
 					
 				local markerCounter = 1;
-				local innerMarkerNamesTable = {};
+				--local innerMarkerNamesTable = {};
+				local innerMarkerNamesIdsTable = {};
 				local innerMarkerIDsTable = {};
 				for i2,marker in pairs(p.marker) do
 					innerMarkerIDsTable[markerCounter] = marker;
 					--markerIDs = markerIDs .. marker .. ",";
-					innerMarkerNamesTable[markerCounter] = i2;
+					--innerMarkerNamesTable[markerCounter] = i2;
 					--markerNames = markerNames .. i2 .. ",";
+
+					local foundMapMarkerNameId = 0
+					for mapMarkerId, mapMarker in pairs(g_currentMission.AutoDrive.mapMarker) do
+						if mapMarker.name == i2 then
+							foundMapMarkerNameId = mapMarkerId
+							break
+						end
+					end
+					innerMarkerNamesIdsTable[markerCounter] = foundMapMarkerNameId
+
 					markerCounter = markerCounter + 1;
 				end;
-				markerNamesTable[i] = table.concat(innerMarkerNamesTable, ",");
+				--markerNamesTable[i] = table.concat(innerMarkerNamesTable, ",");
 				markerIDsTable[i] = table.concat(innerMarkerIDsTable, ",");
+				markerNamesIdsTable[i] = table.concat(innerMarkerNamesIdsTable, ",");
 				
 				--markerIDs = markerIDs .. ";";
 				--markerNames = markerNames .. ";";
@@ -179,13 +188,15 @@ function AutoDrive:deleteMap()
 				setXMLString(adXml, "AutoDrive." .. self.loadedMap .. ".waypoints.out_cost" , table.concat(out_costTable, ";"));
 				if markerIDsTable[1] ~= nil then
 					setXMLString(adXml, "AutoDrive." .. self.loadedMap .. ".waypoints.markerID" , table.concat(markerIDsTable, ";"));
-					setXMLString(adXml, "AutoDrive." .. self.loadedMap .. ".waypoints.markerNames" , table.concat(markerNamesTable, ";"));
+					--setXMLString(adXml, "AutoDrive." .. self.loadedMap .. ".waypoints.markerNames" , table.concat(markerNamesTable, ";"));
+					removeXMLProperty(adXml, "AutoDrive." .. self.loadedMap .. ".waypoints.markerNames")
+					setXMLString(adXml, "AutoDrive." .. self.loadedMap .. ".waypoints.markerNamesIds" , table.concat(markerNamesIdsTable, ";"));
 				end;
 			end;
 			
 			for i in pairs(g_currentMission.AutoDrive.mapMarker) do
 		
-				setXMLFloat(adXml, "AutoDrive." .. self.loadedMap .. ".mapmarker.mm".. i ..".id", g_currentMission.AutoDrive.mapMarker[i].id);
+				setXMLInt(adXml, "AutoDrive." .. self.loadedMap .. ".mapmarker.mm".. i ..".id", g_currentMission.AutoDrive.mapMarker[i].id);
 				setXMLString(adXml, "AutoDrive." .. self.loadedMap .. ".mapmarker.mm".. i ..".name", g_currentMission.AutoDrive.mapMarker[i].name);			
 			
 			end;
@@ -307,7 +318,23 @@ function AutoDrive:load(xmlFile)
 			--print("map " .. g_currentMission.autoLoadedMap .. " waypoints are loaded");
 			self.loadedMap = g_currentMission.autoLoadedMap;
 			if self.loadedMap ~= nil then
-				
+
+				local tagName = "AutoDrive." .. self.loadedMap ..".mapmarker"
+				local mapMarkerCounter = 0
+				while true do
+					mapMarkerCounter = mapMarkerCounter + 1
+					local mapMarker = {}
+					local tagName2 = ("%s.mm%d"):format(tagName, mapMarkerCounter)
+					mapMarker.name  = getXMLString( adXml, tagName2 .. ".name")
+					mapMarker.id    = getXMLInt(    adXml, tagName2 .. ".id")
+					if mapMarker.name == nil
+					or mapMarker.id   == nil then
+						break
+					end
+					g_currentMission.AutoDrive.mapMarker[mapMarkerCounter] = mapMarker
+					g_currentMission.AutoDrive.mapMarkerCounter = mapMarkerCounter
+				end
+
 				local idString = getXMLString(adXml, "AutoDrive." .. self.loadedMap .. ".waypoints.id");
 				local idTable = Utils.splitString("," , idString);
 				local xString = getXMLString(adXml, "AutoDrive." .. self.loadedMap .. ".waypoints.x");
@@ -348,15 +375,30 @@ function AutoDrive:load(xmlFile)
 					local markerID = Utils.splitString("," , outer);
 					markerIDSplitted[i] = markerID;					
 				end;
-				
-				local markerNamesString = getXMLString(adXml, "AutoDrive." .. self.loadedMap .. ".waypoints.markerNames");
-				local markerNamesTable = Utils.splitString(";" , markerNamesString);
+
 				local markerNamesSplitted = {};
-				for i, outer in pairs(markerNamesTable) do
-					local markerNames = Utils.splitString("," , outer);
-					markerNamesSplitted[i] = markerNames;					
-				end;
-				
+				local markerNamesIdsString = getXMLString(adXml, "AutoDrive." .. self.loadedMap .. ".waypoints.markerNamesIds");
+				if markerNamesIdsString ~= nil then
+					local markerNamesIdsTable = Utils.splitString(";" , markerNamesIdsString);
+					for i, outer in pairs(markerNamesIdsTable) do
+						markerNamesSplitted[i] = {}
+						for _, mapMarkerNameId in pairs(Utils.splitString("," , outer)) do
+							local mapMarker = g_currentMission.AutoDrive.mapMarker[tonumber(mapMarkerNameId)]
+							if mapMarker ~= nil then
+								table.insert(markerNamesSplitted[i], mapMarker.name)
+							end
+						end
+					end;
+				else
+					local markerNamesString = getXMLString(adXml, "AutoDrive." .. self.loadedMap .. ".waypoints.markerNames");
+					local markerNamesTable = Utils.splitString(";" , markerNamesString);
+					--local markerNamesSplitted = {};
+					for i, outer in pairs(markerNamesTable) do
+						local markerNames = Utils.splitString("," , outer);
+						markerNamesSplitted[i] = markerNames;
+					end;
+				end
+
 				local wp_counter = 0;
 				for i, id in pairs(idTable) do
 					if id ~= "" then
@@ -432,34 +474,15 @@ function AutoDrive:load(xmlFile)
 						
 				end;
 				--]]
-				
-				local mapMarker = {};
-				local mapMarkerCounter = 1;
-				mapMarker.name = getXMLString(adXml,"AutoDrive." .. self.loadedMap ..".mapmarker.mm"..mapMarkerCounter..".name");
-				
-				while mapMarker.name ~= nil do
-					--print("Loading map marker: " .. mapMarker.name);
-					mapMarker.id = getXMLFloat(adXml,"AutoDrive." .. self.loadedMap ..".mapmarker.mm"..mapMarkerCounter..".id");
 
-					local node = createTransformGroup(mapMarker.name);
-					setTranslation(node, g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].x, g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].y + 4 , g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].z  );
-					mapMarker.node = node;
-					--TODO: do this on import as well
-
-					g_currentMission.AutoDrive.mapMarker[mapMarkerCounter] = mapMarker;
-
-
-					mapMarker = nil;
-					mapMarker = {};
-					mapMarkerCounter = mapMarkerCounter + 1;	
-					g_currentMission.AutoDrive.mapMarkerCounter = g_currentMission.AutoDrive.mapMarkerCounter + 1;
-					mapMarker.name = getXMLString(adXml,"AutoDrive." .. self.loadedMap ..".mapmarker.mm"..mapMarkerCounter..".name");
-				end;
-				--[[
-				for i in pairs(g_currentMission.AutoDrive.mapWayPoints) do
-					print("wp.id: " .. g_currentMission.AutoDrive.mapWayPoints[i].id);
-				end;
-				--]]
+				-- Create transformgroups for marker-names
+				for _, mapMarker in pairs(g_currentMission.AutoDrive.mapMarker) do
+					if mapMarker.node == nil then
+						mapMarker.node = createTransformGroup(mapMarker.name)
+						local wp = g_currentMission.AutoDrive.mapWayPoints[mapMarker.id]
+						setTranslation(mapMarker.node, wp.x, wp.y + 4, wp.z)
+					end
+				end
 			end;
 				
 			
@@ -4126,7 +4149,7 @@ function AutoDrive:ExportRoutes()
 
 	for i in pairs(g_currentMission.AutoDrive.mapMarker) do
 
-		setXMLFloat(exportXml, "AutoDrive.mapmarker.mm".. i ..".id", g_currentMission.AutoDrive.mapMarker[i].id);
+		setXMLInt(exportXml, "AutoDrive.mapmarker.mm".. i ..".id", g_currentMission.AutoDrive.mapMarker[i].id);
 		setXMLString(exportXml, "AutoDrive.mapmarker.mm".. i ..".name", g_currentMission.AutoDrive.mapMarker[i].name);
 
 	end;
@@ -4251,7 +4274,7 @@ function AutoDrive:ImportRoutes()
 
 		while mapMarker.name ~= nil do
 			--print("Loading map marker: " .. mapMarker.name);
-			mapMarker.id = getXMLFloat(importXml,"AutoDrive.mapmarker.mm"..mapMarkerCounter..".id");
+			mapMarker.id = getXMLInt(importXml,"AutoDrive.mapmarker.mm"..mapMarkerCounter..".id");
 
 			local node = createTransformGroup(mapMarker.name);
 			setTranslation(node, g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].x, g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].y + 4 , g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].z  );

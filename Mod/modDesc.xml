@@ -1,11 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <modDesc descVersion="34">
     <author>Balu, Decker_MMIV</author>
+
 	<title>
 		<en>AutoDrive - Code optimization</en>
 		<de>AutoDrive - Code optimization</de>
 		<it>AutoDrive - Code optimization</it>
 	</title>
+
 	<description>
 		<en>
 <![CDATA[ ]]>
@@ -17,12 +19,16 @@
 <![CDATA[ ]]>
 	   </it>
 	</description>
+
     <version>1.2.0</version>
+
 	<multiplayer supported="false"/>
 	<iconFilename>store.dds</iconFilename>
+
     <extraSourceFiles>
         <sourceFile filename="register.lua" />
     </extraSourceFiles>
+
 	<l10n>
 		<text name="UNKNOWN">	           						<en>Unknown</en>         						<de>Unbekannt</de>		        			<it>Sconosciuto</it>									</text>
 		<text name="input_ADToggleHud"> 						<en>AD: Toggle HUD</en> 						<de>AD: HUD ein/ausblenden</de>				<it>AD: HUD mostra/nascondi</it>						</text>

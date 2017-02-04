@@ -20,8 +20,8 @@
 ]]>
 	   </it>
 	</description>
-    <version>1.1.3</version>
-	<multiplayer supported="true"/>   
+    <version>1.2.0-BETA</version>
+	<multiplayer supported="true"/>
 	<iconFilename>store.dds</iconFilename>
     <extraSourceFiles>
         <sourceFile filename="register.lua" />
@@ -48,142 +48,142 @@
 		<text name="input_ADFrontLoaderCam">					<en>AD: FrontLoaderCam On/Off</en>  			<de>AD: Frontlader Kamera an/aus</de>		<it>AD: FrontLoaderCam On/Off</it>						</text>
 
 
-		<text name="input_ADActivateDebug">			<en>AD: Activate Debug Mode</en> 		<de>AD: Debug Modus aktivieren</de>				<it>AD: Attiva Modo Debug</it>					</text>		
-		<text name="input_ADDebugShowClosest">		<en>AD: Show Closest Point</en>  		<de>AD: Naheliegendsten Punkt anzeigen</de>		<it>AD: Mostra punto vicino</it>				</text>		
-		<text name="input_ADDebugSelectNeighbor">	<en>AD: Select Neighbor Point</en>  	<de>AD: Nachbarpunkt wählen</de>				<it>AD: Seleziona punto vicinanze</it>			</text>		
-		<text name="input_ADDebugChangeNeighbor">	<en>AD: Select next Neighbor Point</en> <de>AD: Nächsten Nachbarpunkt wählen</de>		<it>AD: Seleziona altro punto vicinanze</it>	</text>		
+		<text name="input_ADActivateDebug">			<en>AD: Activate Debug Mode</en> 		<de>AD: Debug Modus aktivieren</de>				<it>AD: Attiva Modo Debug</it>					</text>
+		<text name="input_ADDebugShowClosest">		<en>AD: Show Closest Point</en>  		<de>AD: Naheliegendsten Punkt anzeigen</de>		<it>AD: Mostra punto vicino</it>				</text>
+		<text name="input_ADDebugSelectNeighbor">	<en>AD: Select Neighbor Point</en>  	<de>AD: Nachbarpunkt wählen</de>				<it>AD: Seleziona punto vicinanze</it>			</text>
+		<text name="input_ADDebugChangeNeighbor">	<en>AD: Select next Neighbor Point</en> <de>AD: Nächsten Nachbarpunkt wählen</de>		<it>AD: Seleziona altro punto vicinanze</it>	</text>
 		<text name="input_ADDebugCreateConnection">	<en>AD: Toggle connection between</en>  <de>AD: Verbindung an/aus</de>					<it>AD: Crea/Togli connessione</it>				</text>
-		<text name="input_ADDebugCreateMapMarker">	<en>AD: Create new Target</en>  		<de>AD: Neues Ziel erstellen</de>				<it>AD: Crea nuova destinazione</it>			</text>		
-		<text name="input_ADDebugDeleteWayPoint">	<en>AD: Delete Waypoint</en>  			<de>AD: Wegpunkt löschen</de>					<it>AD: Cancella punto percorso</it>			</text>	
-		<text name="input_ADDebugForceUpdate">		<en>AD: Update ways</en>  				<de>AD: Wege neuberechnen</de>					<it>AD: Aggiorna percorsi</it>					</text>	
+		<text name="input_ADDebugCreateMapMarker">	<en>AD: Create new Target</en>  		<de>AD: Neues Ziel erstellen</de>				<it>AD: Crea nuova destinazione</it>			</text>
+		<text name="input_ADDebugDeleteWayPoint">	<en>AD: Delete Waypoint</en>  			<de>AD: Wegpunkt löschen</de>					<it>AD: Cancella punto percorso</it>			</text>
+		<text name="input_ADDebugForceUpdate">		<en>AD: Update ways</en>  				<de>AD: Wege neuberechnen</de>					<it>AD: Aggiorna percorsi</it>					</text>
 		<text name="input_ADDebugDeleteDestination">		<en>AD: Delete Destination</en>  		<de>AD: Ziel löschen</de>					<it>AD: Cancella Destinazione</it>  	</text>
 
-		<text name="AD_Deactivated">	<en>AutoDrive stopped</en>  			<de>AutoDrive aus</de>				<it>Autodrive fermato</it>			</text>	
-		<text name="AD_Activated">		<en>AutoDrive started</en>  			<de>AutoDrive an</de>				<it>Autodrive avviato</it>			</text>	
-		
-		<text name="AD_Silomode_on">	<en>Silomode on</en>  					<de>Silomodus an</de>				<it>Modo silo on</it>				</text>	
-		<text name="AD_Silomode_off">	<en>Silomode off</en>  					<de>Silomodus aus</de>				<it>Modo silo off</it>				</text>	
-		<text name="AD_Roundtrip_off">	<en>Roundtrip off</en>  				<de>Rundkurs aus</de>				<it>Viaggio on</it>					</text>	
-		<text name="AD_Roundtrip_on">	<en>Roundtrip on</en>  					<de>Rundkurs an</de>				<it>Viaggio off</it>				</text>	
-		<text name="AD_Recording_off">	<en>Stopped Recording</en>  			<de>Aufzeichnen beendet</de>		<it>Registrazione fermata</it>		</text>	
-		<text name="AD_Recording_on">	<en>Started Recording</en>  			<de>Aufzeichnen gestartet</de>		<it>Registrazione avviata</it>		</text>	
-		
-		<text name="AD_Selected_Target">	<en>Selected Target: </en>  			<de>Gewähltes Ziel: </de>		<it>Destinazione selezionata: </it>	</text>	
-		<text name="AD_Debug_on">	
-			<en>Debug mode - Warning. Only for Developers.</en> 
+		<text name="AD_Deactivated">	<en>AutoDrive stopped</en>  			<de>AutoDrive aus</de>				<it>Autodrive fermato</it>			</text>
+		<text name="AD_Activated">		<en>AutoDrive started</en>  			<de>AutoDrive an</de>				<it>Autodrive avviato</it>			</text>
+
+		<text name="AD_Silomode_on">	<en>Silomode on</en>  					<de>Silomodus an</de>				<it>Modo silo on</it>				</text>
+		<text name="AD_Silomode_off">	<en>Silomode off</en>  					<de>Silomodus aus</de>				<it>Modo silo off</it>				</text>
+		<text name="AD_Roundtrip_off">	<en>Roundtrip off</en>  				<de>Rundkurs aus</de>				<it>Viaggio on</it>					</text>
+		<text name="AD_Roundtrip_on">	<en>Roundtrip on</en>  					<de>Rundkurs an</de>				<it>Viaggio off</it>				</text>
+		<text name="AD_Recording_off">	<en>Stopped Recording</en>  			<de>Aufzeichnen beendet</de>		<it>Registrazione fermata</it>		</text>
+		<text name="AD_Recording_on">	<en>Started Recording</en>  			<de>Aufzeichnen gestartet</de>		<it>Registrazione avviata</it>		</text>
+
+		<text name="AD_Selected_Target">	<en>Selected Target: </en>  			<de>Gewähltes Ziel: </de>		<it>Destinazione selezionata: </it>	</text>
+		<text name="AD_Debug_on">
+			<en>Debug mode - Warning. Only for Developers.</en>
 			<de>Debug Modus: Vorsicht, nur für Entwickler oder erfahrene Nutzer</de>
 			<it>Debug mode - Attenzione: Solo per Sviluppatori.</it>
-		</text>	
-		<text name="AD_Debug_off">	
-			<en>Debug mode - off</en> 
+		</text>
+		<text name="AD_Debug_off">
+			<en>Debug mode - off</en>
 			<de>Debug Modus: aus</de>
 			<it>Debug mode - off</it>
-		</text>	
-		
-		<text name="AD_Debug_show_closest">	
-			<en>Debug mode - closest waypoint marked</en> 
+		</text>
+
+		<text name="AD_Debug_show_closest">
+			<en>Debug mode - closest waypoint marked</en>
 			<de>Debug Modus: nächster Wegpunkt wird angezeigt</de>
 			<it>Debug mode - punto vicinanza marked</it>
-		</text>	
-		
-		<text name="AD_Debug_show_closest_off">	
-			<en>Debug mode - stopped marking closest waypoint</en> 
+		</text>
+
+		<text name="AD_Debug_show_closest_off">
+			<en>Debug mode - stopped marking closest waypoint</en>
 			<de>Debug Modus: nächster Wegpunkt wird nicht mehr angezeigt</de>
 			<it>Debug mode - fermato marking punto passaggio</it>
-		</text>	
-		
-		<text name="AD_Debug_show_closest_neighbors">	
-			<en>Debug mode - Showing possible connection points</en> 
+		</text>
+
+		<text name="AD_Debug_show_closest_neighbors">
+			<en>Debug mode - Showing possible connection points</en>
 			<de>Debug Modus: mögliche Verbindungspunkte werden markiert</de>
 			<it>Debug mode - Visualizza punti connessione possibili</it>
-		</text>	
-		
-		<text name="AD_Debug_change_connection">	
-			<en>Debug mode - connection established / destroyed</en> 
+		</text>
+
+		<text name="AD_Debug_change_connection">
+			<en>Debug mode - connection established / destroyed</en>
 			<de>Debug Modus: Verbindungspunkte hergestellt / entfernt</de>
 			<it>Debug mode - connessione creata / distrutta</it>
-		</text>	
-		
-		<text name="AD_Debug_not_ready">	
-			<en>Debug mode - not ready</en> 
+		</text>
+
+		<text name="AD_Debug_not_ready">
+			<en>Debug mode - not ready</en>
 			<de>Debug Modus: nicht bereit</de>
 			<it>Debug mode - non pronto</it>
-		</text>	
-		
-		<text name="AD_Debug_closest">	
-			<en>Closest Waypoint: </en> 
+		</text>
+
+		<text name="AD_Debug_closest">
+			<en>Closest Waypoint: </en>
 			<de>Nähester Wegpunkt: </de>
 			<it>Punto passaggio vicinanze:</it>
 		</text>
-		
-		<text name="AD_Debug_waypoint_created_1">	
-			<en>New Waypoint created. Edit name in the AutoDrive_config.XML with id: </en> 
+
+		<text name="AD_Debug_waypoint_created_1">
+			<en>New Waypoint created. Edit name in the AutoDrive_config.XML with id: </en>
 			<de>Neues Ziel erstellt. Passen Sie den Namen in der AutoDrive_config.xml an. Ziel ID: </de>
 			<it>Nuovo punto passaggio creato. Modifica il nome nel AutoDrive_config.XML con id: </it>
 		</text>
-		
-		<text name="AD_Debug_waypoint_created_2">	
-			<en> after exiting the game. Then restart!</en> 
+
+		<text name="AD_Debug_waypoint_created_2">
+			<en> after exiting the game. Then restart!</en>
 			<de> Erst Spiel beenden!</de>
 			<it> poi esci dal gioco. E riavvia!</it>
 		</text>
-		
-		<text name="AD_Speed_set_to">	
-			<en>Speed set to:</en> 
+
+		<text name="AD_Speed_set_to">
+			<en>Speed set to:</en>
 			<de>Geschwindigkeit gesetzt auf:</de>
 			<it>Velocita impostata a:</it>
 		</text>
-		
-		<text name="AD_Hof">	
-			<en>Farm</en> 
+
+		<text name="AD_Hof">
+			<en>Farm</en>
 			<de>Hof</de>
 			<it>Fattoria</it>
 		</text>
-		
-		<text name="AD_Kuhstall">	
-			<en>Cows</en> 
+
+		<text name="AD_Kuhstall">
+			<en>Cows</en>
 			<de>Kuhstall</de>
 			<it>Vacche</it>
 		</text>
-		
-		<text name="AD_Schweinestall">	
-			<en>Pigs</en> 
+
+		<text name="AD_Schweinestall">
+			<en>Pigs</en>
 			<de>Schweinestall</de>
 			<it>Maiali</it>
 		</text>
-		
+
 		<text name="AD_Schafsweide">
-			<en>Sheeps</en> 
+			<en>Sheeps</en>
 			<de>Schafsweide</de>
 			<it>Pecore</it>
 		</text>
-		
-		<text name="AD_Tankstelle">	
-			<en>Gas station</en> 
+
+		<text name="AD_Tankstelle">
+			<en>Gas station</en>
 			<de>Tankstelle</de>
 			<it>Stazione carburanti</it>
 		</text>
-		
-		<text name="AD_Viehhandel">	
-			<en>Animal Shop</en> 
+
+		<text name="AD_Viehhandel">
+			<en>Animal Shop</en>
 			<de>Viehhandel</de>
 			<it>Negozio animali</it>
 		</text>
-		
-		<text name="AD_Driver_of">	
-			<en>Driver of</en> 
+
+		<text name="AD_Driver_of">
+			<en>Driver of</en>
 			<de>Der Fahrer von</de>
 			<it>Autista di</it>
 		</text>
-		
-		<text name="AD_has_reached">	
-			<en>has reached</en> 
+
+		<text name="AD_has_reached">
+			<en>has reached</en>
 			<de>ist angekommen bei</de>
 			<it>ha raggiunto</it>
 		</text>
-		
-		<text name="AD_got_stuck">	
-			<en>got stuck</en> 
+
+		<text name="AD_got_stuck">
+			<en>got stuck</en>
 			<de>hat sich fest gefahren</de>
 			<it>è bloccato</it>
 		</text>
@@ -193,7 +193,7 @@
 			<de>Neues Ziel:</de>
 			<it>Nuovo obiettivo:</it>
 		</text>
-		
+
 		<text name="AD_new_marker_helptext">
 			<en>Please enter new name (Stop with enter key)</en>
 			<de>Namen eingeben - Beenden mit Enter-Taste</de>
@@ -213,8 +213,8 @@
 		</text>
 
 	</l10n>
-	
-	<inputBindings>			
+
+	<inputBindings>
 		<input name="ADToggleHud" 						category="VEHICLE" key1="KEY_lalt KEY_KP_0"   			key2="" button="" device="0" mouse="" />
 		<input name="ADToggleMouse" 					category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="MOUSE_BUTTON_RIGHT" />
 		<input name="ADRecord" 							category="VEHICLE" key1="KEY_lctrl KEY_left"   			key2="" button="" device="0" mouse="" />
@@ -245,6 +245,6 @@
 		<input name="ADDebugForceUpdate" 				category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="" />
 		<input name="ADDebugDeleteDestination" 			category="VEHICLE" key1=""   							key2="" button="" device="0" mouse="" />
     </inputBindings>
-	
+
 </modDesc>
 

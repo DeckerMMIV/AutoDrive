@@ -1738,7 +1738,8 @@ function AutoDrive:update(dt)
 
 		if self.frontLoaderCam ~= nil then
 
-			local inputW = InputBinding.getDigitalInputAxis(InputBinding.AXIS_FRONTLOADER_ARM) + InputBinding.getAnalogInputAxi	(InputBinding.AXIS_FRONTLOADER_ARM); --InputBinding.getDigitalInputAxis(InputBinding.AXIS_LOOK_UPDOWN_VEHICLE)+InputBinding.getAnalogInputAxs	(InputBinding.AXIS_LOOK_UPDOWN_VEHICLE);
+			local inputW = InputBinding.getDigitalInputAxis(InputBinding.AXIS_FRONTLOADER_ARM)
+						 + InputBinding.getAnalogInputAxis(InputBinding.AXIS_FRONTLOADER_ARM);
 
 			--self.ad.frontLoaderCamShift = Utils.getNoNil(self.ad.frontLoaderCamShift,0) + inputW*8e-4*dt;
 			--self.ad.frontLoaderCamShift = Utils.clamp(self.ad.frontLoaderCamShift,-1,2);
@@ -1773,12 +1774,14 @@ function AutoDrive:update(dt)
 					self.frontLoaderCamOffsetZ = (tempToolZ-tempCamZ)*0.5; -- -1.0
 				end;
 
-				local inputW = InputBinding.getDigitalInputAxis(InputBinding.AXIS_LOOK_UPDOWN_VEHICLE)+InputBinding.getAnalogInputAxi	(InputBinding.AXIS_LOOK_UPDOWN_VEHICLE);
+				local inputW = InputBinding.getDigitalInputAxis(InputBinding.AXIS_LOOK_UPDOWN_VEHICLE)
+							+ InputBinding.getAnalogInputAxis(InputBinding.AXIS_LOOK_UPDOWN_VEHICLE);
 
 				self.ad.frontLoaderCamShiftAngle = Utils.getNoNil(inputW*6e-3*dt,0);
 				self.ad.frontLoaderCamShiftAngle = Utils.clamp(self.ad.frontLoaderCamShiftAngle,-math.pi,math.pi);
 
-				local inputW = InputBinding.getDigitalInputAxis(InputBinding.AXIS_LOOK_LEFTRIGHT_VEHICLE)+InputBinding.getAnalogInputAxi	(InputBinding.AXIS_LOOK_LEFTRIGHT_VEHICLE);
+				local inputW = InputBinding.getDigitalInputAxis(InputBinding.AXIS_LOOK_LEFTRIGHT_VEHICLE)
+							+ InputBinding.getAnalogInputAxis(InputBinding.AXIS_LOOK_LEFTRIGHT_VEHICLE);
 
 				self.ad.frontLoaderCamShift = Utils.getNoNil(self.ad.frontLoaderCamShift,0) + inputW*3.5e-3*dt;
 				self.ad.frontLoaderCamShift = Utils.clamp(self.ad.frontLoaderCamShift,-5,10);
@@ -1836,7 +1839,7 @@ function AutoDrive:update(dt)
 				self.nTimeToDeadLock = 15000;
 				if self.bTargetMode == true then
 					local closest = AutoDrive:findMatchingWayPoint(veh) --AutoDrive:findClosestWayPoint(veh);
-					self.ad.wayPoints = AutoDrive:FastShortestPath(g_currentMission.AutoDrive.mapWayPoints, closest, g_currentMission.AutoDrive.mapMarke	[self.nMapMarkerSelected].name, self.ntargetSelected);
+					self.ad.wayPoints = AutoDrive:FastShortestPath(g_currentMission.AutoDrive.mapWayPoints, closest, g_currentMission.AutoDrive.mapMarker[self.nMapMarkerSelected].name, self.ntargetSelected);
 					if self.ad.wayPoints[2] ~= nil then
 						self.nCurrentWayPoint = 2;
 					else
@@ -1907,7 +1910,7 @@ function AutoDrive:update(dt)
 
 								else
 									--print("Shutting down");
-									AutoDrive.printMessage = g_i18n:getText("AD_Driver_of") .. " " .. self.name .. " " .. g_i18n:getText("AD_has_reached") .. "	" .. self.sTargetSelected;
+									AutoDrive.printMessage = g_i18n:getText("AD_Driver_of") .. " " .. self.name .. " " .. g_i18n:getText("AD_has_reached") .. " " .. self.sTargetSelected;
 									AutoDrive.nPrintTime = 6000;
 
 									if self.isServer == true then
@@ -1935,7 +1938,7 @@ function AutoDrive:update(dt)
 								self.nTimeToDeadLock = 15000;
 
 								local closest = self.ad.wayPoints[self.nCurrentWayPoint].id;
-								self.ad.wayPoints = AutoDrive:FastShortestPath(g_currentMission.AutoDrive.mapWayPoints, closest,	g_currentMission.AutoDrive.mapMarker[self.nMapMarkerSelected].name, self.ntargetSelected);
+								self.ad.wayPoints = AutoDrive:FastShortestPath(g_currentMission.AutoDrive.mapWayPoints, closest, g_currentMission.AutoDrive.mapMarker[self.nMapMarkerSelected].name, self.ntargetSelected);
 								self.nCurrentWayPoint = 1;
 
 								self.nTargetX = self.ad.wayPoints[self.nCurrentWayPoint].x;
@@ -1946,7 +1949,7 @@ function AutoDrive:update(dt)
 								self.nTimeToDeadLock = 15000;
 
 								local closest = self.ad.wayPoints[self.nCurrentWayPoint].id;
-								self.ad.wayPoints = AutoDrive:FastShortestPath(g_currentMission.AutoDrive.mapWayPoints, closest,	g_currentMission.AutoDrive.mapMarker[self.nMapMarkerSelected_Unload].name, g_currentMission.AutoDrive.mapMarkr	[self.nMapMarkerSelected_Unload].id);
+								self.ad.wayPoints = AutoDrive:FastShortestPath(g_currentMission.AutoDrive.mapWayPoints, closest, g_currentMission.AutoDrive.mapMarker[self.nMapMarkerSelected_Unload].name, g_currentMission.AutoDrive.mapMarker[self.nMapMarkerSelected_Unload].id);
 								self.nCurrentWayPoint = 1;
 
 								self.nTargetX = self.ad.wayPoints[self.nCurrentWayPoint].x;
@@ -2295,7 +2298,7 @@ function AutoDrive:update(dt)
 							local correctTrailer = false;
 							if trigger.siloTrailer == trailer then correctTrailer = true; end;
 
-							--print("valid: " .. tostring(valid) .. " level: " ..  tostring(level) .. " activatable: " .. tostring(activatable) .. "	correctTrailer: " .. tostring(correctTrailer) );
+							--print("valid: " .. tostring(valid) .. " level: " ..  tostring(level) .. " activatable: " .. tostring(activatable) .. " correctTrailer: " .. tostring(correctTrailer) );
 							if valid and level > 0 and activatable and correctTrailer and trailer.bLoading ~= true then --
 								if	trailer:getFreeCapacity() > 1 then
 									--print("Starting to unload into trailer" );

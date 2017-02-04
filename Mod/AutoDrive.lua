@@ -1,10 +1,11 @@
 
 AutoDrive = {};
-AutoDrive.Version = "1.2.0-BETA";
+--
+local modItem = ModsUtil.findModItemByModName(g_currentModName);
+AutoDrive.Version = (modItem and modItem.version) and modItem.version or "0.0.0";
+--
 AutoDrive.config_changed = false;
-
 AutoDrive.directory = g_currentModDirectory;
-
 
 function AutoDrive:prerequisitesPresent(specializations)
 	return true;
@@ -64,6 +65,169 @@ function AutoDrive:loadMap(name)
 	print("map " .. self.loadedMap .. " was loaded");
 end;
 
+function AutoDrive.writeWaypointsAndMarkers(adXml, tagName)
+	local idFullTable = {};
+	local xTable = {};
+	local yTable = {};
+	local zTable = {};
+	local outTable = {};
+	local incomingTable = {};
+	local out_costTable = {};
+	local markerNamesTable = {};
+	local markerIDsTable = {};
+
+	for i,wp in pairs(g_currentMission.AutoDrive.mapWayPoints) do
+		idFullTable[i] = wp.id;
+
+		xTable[i] = ("%.2f"):format(wp.x);
+		yTable[i] = ("%.2f"):format(wp.y);
+		zTable[i] = ("%.2f"):format(wp.z);
+
+		outTable[i] = table.concat(wp.out, ",");
+		out_costTable[i] = table.concat(wp.out_cost, ",");
+
+		local innerIncomingTable = {};
+		local innerIncomingCounter = 1;
+		for _, p2 in pairs(g_currentMission.AutoDrive.mapWayPoints) do
+			for _, out2 in pairs(p2.out) do
+				if out2 == wp.id then
+					innerIncomingTable[innerIncomingCounter] = p2.id;
+					innerIncomingCounter = innerIncomingCounter + 1;
+				end;
+			end;
+		end;
+		incomingTable[i] = table.concat(innerIncomingTable, ",")
+
+		local markerCounter = 1
+		local innerMarkerNamesTable = {}
+		local innerMarkerIDsTable = {}
+		for i2,marker in pairs(wp.marker) do
+			innerMarkerIDsTable[markerCounter] = marker
+			innerMarkerNamesTable[markerCounter] = i2
+			markerCounter = markerCounter + 1
+		end
+		markerNamesTable[i] = table.concat(innerMarkerNamesTable, ",")
+		markerIDsTable[i] = table.concat(innerMarkerIDsTable, ",")
+	end
+
+	if idFullTable[1] ~= nil then
+		local tagName2 = tagName .. ".waypoints"
+		setXMLString(adXml, tagName2 .. ".id" , table.concat(idFullTable, ",") );
+		setXMLString(adXml, tagName2 .. ".x" , table.concat(xTable, ","));
+		setXMLString(adXml, tagName2 .. ".y" , table.concat(yTable, ","));
+		setXMLString(adXml, tagName2 .. ".z" , table.concat(zTable, ","));
+		setXMLString(adXml, tagName2 .. ".out" , table.concat(outTable, ";"));
+		setXMLString(adXml, tagName2 .. ".incoming" , table.concat(incomingTable, ";") );
+		setXMLString(adXml, tagName2 .. ".out_cost" , table.concat(out_costTable, ";"));
+		if markerIDsTable[1] ~= nil then
+			setXMLString(adXml, tagName2 .. ".markerID" , table.concat(markerIDsTable, ";"));
+			setXMLString(adXml, tagName2 .. ".markerNames" , table.concat(markerNamesTable, ";"));
+		end;
+	end;
+
+	local tagName2 = tagName .. ".mapmarker"
+	for i,mm in pairs(g_currentMission.AutoDrive.mapMarker) do
+		setXMLInt(   adXml, tagName2 .. ".mm".. i ..".id",   mm.id);
+		setXMLString(adXml, tagName2 .. ".mm".. i ..".name", mm.name);
+	end;
+end
+
+function AutoDrive.readWaypointsAndMarkers(adXml, tagName)
+	local tagName2 = tagName ".waypoints"
+
+	local idTable = Utils.splitString("," , getXMLString(adXml, tagName2 .. ".id"))
+	local xTable  = Utils.splitString("," , getXMLString(adXml, tagName2 .. ".x"))
+	local yTable  = Utils.splitString("," , getXMLString(adXml, tagName2 .. ".y"))
+	local zTable  = Utils.splitString("," , getXMLString(adXml, tagName2 .. ".z"))
+
+	local function splitIntoArrays(wholeText)
+		local splitted = {}
+		for i, part in pairs(Utils.splitString(";" , wholeText) do
+			splitted[i] = Utils.splitString("," , part)
+		end;
+		return splitted
+	end
+
+	local outSplitted         = splitIntoArrays( getXMLString(adXml, tagName2 .. ".out") )
+	local incomingSplitted    = splitIntoArrays( getXMLString(adXml, tagName2 .. ".incoming") )
+	local out_costSplitted    = splitIntoArrays( getXMLString(adXml, tagName2 .. ".out_cost") )
+	local markerIDSplitted    = splitIntoArrays( getXMLString(adXml, tagName2 .. ".markerID") )
+	local markerNamesSplitted = splitIntoArrays( getXMLString(adXml, tagName2 .. ".markerNames") )
+
+	local wp_counter = 0;
+	for i, id in pairs(idTable) do
+		if id ~= "" then
+			local out = {}
+			for i2,outString in pairs(outSplitted[i]) do
+				out[i2] = tonumber(outString)
+			end
+
+			local incoming = {}
+			local incoming_counter = 1
+			for i2, incomingID in pairs(incomingSplitted[i]) do
+				if incomingID ~= "" then
+					incoming[incoming_counter] = tonumber(incomingID)
+				end
+				incoming_counter = incoming_counter +1
+			end
+
+			local out_cost = {}
+			for i2,out_costString in pairs(out_costSplitted[i]) do
+				out_cost[i2] = tonumber(out_costString)
+			end
+
+			local marker = {}
+			for i2, markerName in pairs(markerNamesSplitted[i]) do
+				if markerName ~= "" then
+					marker[markerName] = tonumber(markerIDSplitted[i][i2])
+				end
+			end
+
+			local wp = {
+				id = tonumber(id)
+				,x = tonumber(xTable[i])
+				,y = tonumber(yTable[i])
+				,z = tonumber(zTable[i])
+				,out = out
+				,incoming = incoming
+				,out_cost = out_cost
+				,marker = marker
+			}
+			wp_counter = wp_counter + 1
+			g_currentMission.AutoDrive.mapWayPoints[wp_counter] = wp
+		end
+	end
+
+	if g_currentMission.AutoDrive.mapWayPoints[wp_counter] ~= nil then
+		print("AD: Loaded Waypoints: " .. wp_counter);
+		g_currentMission.AutoDrive.mapWayPointsCounter = wp_counter;
+	else
+		g_currentMission.AutoDrive.mapWayPointsCounter = 0;
+	end;
+
+	--
+	local tagName3 = "AutoDrive." .. self.loadedMap ..".mapmarker"
+	local mapMarker = {};
+	local mapMarkerCounter = 1;
+	mapMarker.name = getXMLString(adXml, tagName3 .. ".mm"..mapMarkerCounter..".name");
+
+	while mapMarker.name ~= nil do
+		mapMarker.id = getXMLFloat(adXml, tagName3 .. ".mm"..mapMarkerCounter..".id");
+
+		local node = createTransformGroup(mapMarker.name);
+		setTranslation(node, g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].x, g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].y + 4 ,	g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].z  );
+		mapMarker.node = node;
+
+		g_currentMission.AutoDrive.mapMarker[mapMarkerCounter] = mapMarker;
+
+		mapMarker = nil;
+		mapMarker = {};
+		mapMarkerCounter = mapMarkerCounter + 1;
+		g_currentMission.AutoDrive.mapMarkerCounter = g_currentMission.AutoDrive.mapMarkerCounter + 1;
+		mapMarker.name = getXMLString(adXml, tagName3 .. ".mm"..mapMarkerCounter..".name");
+	end;
+end
+
 function AutoDrive:deleteMap()
 
 	if AutoDrive:GetChanged() == true and g_server ~= nil then
@@ -72,8 +236,11 @@ function AutoDrive:deleteMap()
 			local adXml = g_currentMission.AutoDrive.adXml;
 
 			setXMLString(adXml, "AutoDrive.Version", AutoDrive.Version);
-			setXMLBool(adXml, "AutoDrive.Recalculation", not g_currentMission.AutoDrive.handledRecalculation)
+			setXMLBool(  adXml, "AutoDrive.Recalculation", not g_currentMission.AutoDrive.handledRecalculation)
 
+			local tagName = "AutoDrive." .. self.loadedMap
+			AutoDrive.writeWaypointsAndMarkers(adXml, tagName)
+--[[
 			local idFullTable = {};
 			local xTable = {};
 			local yTable = {};
@@ -83,8 +250,6 @@ function AutoDrive:deleteMap()
 			local out_costTable = {};
 			local markerNamesTable = {};
 			local markerIDsTable = {};
-
-			local tagName = "AutoDrive." .. self.loadedMap
 
 			for i,wp in pairs(g_currentMission.AutoDrive.mapWayPoints) do
 				idFullTable[i] = wp.id;
@@ -139,6 +304,7 @@ function AutoDrive:deleteMap()
 				setXMLInt(adXml, tagName .. ".mapmarker.mm".. i ..".id", g_currentMission.AutoDrive.mapMarker[i].id);
 				setXMLString(adXml, tagName .. ".mapmarker.mm".. i ..".name", g_currentMission.AutoDrive.mapMarker[i].name);
 			end;
+--]]
 
 			saveXMLFile(adXml);
 		end;
@@ -254,6 +420,9 @@ function AutoDrive:load(xmlFile)
 			self.loadedMap = g_currentMission.autoLoadedMap;
 			if self.loadedMap ~= nil then
 
+				local tagName = "AutoDrive." .. self.loadedMap
+				AutoDrive.readWaypointsAndMarkers(adXml, tagName)
+--[[
 				local tagName2 = "AutoDrive." .. self.loadedMap .. ".waypoints"
 
 				local idTable = Utils.splitString("," , getXMLString(adXml, tagName2 .. ".id"))
@@ -347,8 +516,8 @@ function AutoDrive:load(xmlFile)
 					g_currentMission.AutoDrive.mapMarkerCounter = g_currentMission.AutoDrive.mapMarkerCounter + 1;
 					mapMarker.name = getXMLString(adXml, tagName3 .. ".mm"..mapMarkerCounter..".name");
 				end;
+--]]
 			end;
-
 
 			local recalculate = getXMLBool(adXml, "AutoDrive.Recalculation");
 
@@ -3478,56 +3647,30 @@ function AutoDrive:ExportRoutes()
 	print("AD: creating xml file at " .. exportFile);
 	local exportXml = createXMLFile("AutoDrive_XML", exportFile, "AutoDrive");
 
-	saveXMLFile(exportXml);
+	--saveXMLFile(exportXml);
 
 	setXMLString(exportXml, "AutoDrive.Version", AutoDrive.Version);
-	if g_currentMission.AutoDrive.handledRecalculation ~= true then
-		setXMLString(exportXml, "AutoDrive.Recalculation", "true");
-		print("AD: Set to recalculating routes");
-	else
-		setXMLString(exportXml, "AutoDrive.Recalculation", "false");
-		print("AD: Set to not recalculating routes");
-	end;
+	setXMLBool(exportXml,"AutoDrive.Recalculation", not g_currentMission.AutoDrive.handledRecalculation);
 
+	local tagName = "AutoDrive"
+	AutoDrive.writeWaypointsAndMarkers(exportXml, tagName)
+--[[
 	local idFullTable = {};
-	local idString = "";
-
 	local xTable = {};
-	local xString = "";
-
 	local yTable = {};
-	local yString = "";
-
 	local zTable = {};
-	local zString = "";
-
 	local outTable = {};
-	local outString = "";
-
 	local incomingTable = {};
-	local incomingString = "";
-
 	local out_costTable = {};
-	local out_costString = "";
-
 	local markerNamesTable = {};
-	local markerNames = "";
-
 	local markerIDsTable = {};
-	local markerIDs = "";
 
 	for i,p in pairs(g_currentMission.AutoDrive.mapWayPoints) do
-
-		--idString = idString .. p.id .. ",";
 		idFullTable[i] = p.id;
-		--xString = xString .. p.x .. ",";
-		xTable[i] = p.x;
-		--yString = yString .. p.y .. ",";
-		yTable[i] = p.y;
-		--zString = zString .. p.z .. ",";
-		zTable[i] = p.z;
+		xTable[i] = ("%.2f"):format(p.x);
+		yTable[i] = ("%.2f"):format(p.y);
+		zTable[i] = ("%.2f"):format(p.z);
 
-		--outString = outString .. table.concat(p.out, ",") .. ";";
 		outTable[i] = table.concat(p.out, ",");
 
 		local innerIncomingTable = {};
@@ -3537,58 +3680,46 @@ function AutoDrive:ExportRoutes()
 				if out2 == p.id then
 					innerIncomingTable[innerIncomingCounter] = p2.id;
 					innerIncomingCounter = innerIncomingCounter + 1;
-					--incomingString = incomingString .. p2.id .. ",";
 				end;
 			end;
 		end;
 		incomingTable[i] = table.concat(innerIncomingTable, ",");
-		--incomingString = incomingString .. ";";
-
 		out_costTable[i] = table.concat(p.out_cost, ",");
-		--out_costString = out_costString .. table.concat(p.out_cost, ",") .. ";";
 
 		local markerCounter = 1;
 		local innerMarkerNamesTable = {};
 		local innerMarkerIDsTable = {};
 		for i2,marker in pairs(p.marker) do
 			innerMarkerIDsTable[markerCounter] = marker;
-			--markerIDs = markerIDs .. marker .. ",";
 			innerMarkerNamesTable[markerCounter] = i2;
-			--markerNames = markerNames .. i2 .. ",";
 			markerCounter = markerCounter + 1;
 		end;
 		markerNamesTable[i] = table.concat(innerMarkerNamesTable, ",");
 		markerIDsTable[i] = table.concat(innerMarkerIDsTable, ",");
-
-		--markerIDs = markerIDs .. ";";
-		--markerNames = markerNames .. ";";
 	end;
 
 	if idFullTable[1] ~= nil then
-
-		setXMLString(exportXml, "AutoDrive.waypoints.id" , table.concat(idFullTable, ",") );
-		setXMLString(exportXml, "AutoDrive.waypoints.x" , table.concat(xTable, ","));
-		setXMLString(exportXml, "AutoDrive.waypoints.y" , table.concat(yTable, ","));
-		setXMLString(exportXml, "AutoDrive.waypoints.z" , table.concat(zTable, ","));
-		setXMLString(exportXml, "AutoDrive.waypoints.out" , table.concat(outTable, ";"));
-		setXMLString(exportXml, "AutoDrive.waypoints.incoming" , table.concat(incomingTable, ";") );
-		setXMLString(exportXml, "AutoDrive.waypoints.out_cost" , table.concat(out_costTable, ";"));
+		local tagName = "AutoDrive.waypoints"
+		setXMLString(exportXml, tagName .. ".id" , table.concat(idFullTable, ",") );
+		setXMLString(exportXml, tagName .. ".x" , table.concat(xTable, ","));
+		setXMLString(exportXml, tagName .. ".y" , table.concat(yTable, ","));
+		setXMLString(exportXml, tagName .. ".z" , table.concat(zTable, ","));
+		setXMLString(exportXml, tagName .. ".out" , table.concat(outTable, ";"));
+		setXMLString(exportXml, tagName .. ".incoming" , table.concat(incomingTable, ";") );
+		setXMLString(exportXml, tagName .. ".out_cost" , table.concat(out_costTable, ";"));
 		if markerIDsTable[1] ~= nil then
-			setXMLString(exportXml, "AutoDrive.waypoints.markerID" , table.concat(markerIDsTable, ";"));
-			setXMLString(exportXml, "AutoDrive.waypoints.markerNames" , table.concat(markerNamesTable, ";"));
+			setXMLString(exportXml, tagName .. ".markerID" , table.concat(markerIDsTable, ";"));
+			setXMLString(exportXml, tagName .. ".markerNames" , table.concat(markerNamesTable, ";"));
 		end;
 	end;
 
-	for i in pairs(g_currentMission.AutoDrive.mapMarker) do
-
-		setXMLFloat(exportXml, "AutoDrive.mapmarker.mm".. i ..".id", g_currentMission.AutoDrive.mapMarker[i].id);
-		setXMLString(exportXml, "AutoDrive.mapmarker.mm".. i ..".name", g_currentMission.AutoDrive.mapMarker[i].name);
-
+	local tagName = "AutoDrive.mapmarker"
+	for _, mm in pairs(g_currentMission.AutoDrive.mapMarker) do
+		setXMLInt(exportXml,    tagName .. ".mm".. i ..".id", mm.id);
+		setXMLString(exportXml, tagName .. ".mm".. i ..".name", mm.name);
 	end;
-
+--]]
 	saveXMLFile(exportXml);
-
-
 end;
 
 function AutoDrive:ImportRoutes()
@@ -3602,14 +3733,13 @@ function AutoDrive:ImportRoutes()
 		print("AD: Importing xml file from " .. importFile);
 		importXml = loadXMLFile("AutoDrive_XML", importFile);
 
-		local idString = getXMLString(importXml, "AutoDrive.waypoints.id");
-		local idTable = Utils.splitString("," , idString);
-		local xString = getXMLString(importXml, "AutoDrive.waypoints.x");
-		local xTable = Utils.splitString("," , xString);
-		local yString = getXMLString(importXml, "AutoDrive.waypoints.y");
-		local yTable = Utils.splitString("," ,yString);
-		local zString = getXMLString(importXml, "AutoDrive.waypoints.z");
-		local zTable = Utils.splitString("," , zString);
+		local tagName = "AutoDrive"
+		AutoDrive.readWaypointsAndMarkers(importXml, tagName)
+--[[
+		local idTable = Utils.splitString("," , getXMLString(importXml, "AutoDrive.waypoints.id"));
+		local xTable = Utils.splitString("," , getXMLString(importXml, "AutoDrive.waypoints.x"));
+		local yTable = Utils.splitString("," , getXMLString(importXml, "AutoDrive.waypoints.y"));
+		local zTable = Utils.splitString("," , getXMLString(importXml, "AutoDrive.waypoints.z"));
 
 		local outString = getXMLString(importXml, "AutoDrive.waypoints.out");
 		local outTable = Utils.splitString(";" , outString);
@@ -3719,6 +3849,7 @@ function AutoDrive:ImportRoutes()
 			g_currentMission.AutoDrive.mapMarkerCounter = g_currentMission.AutoDrive.mapMarkerCounter + 1;
 			mapMarker.name = getXMLString(importXml,"AutoDrive.mapmarker.mm"..mapMarkerCounter..".name");
 		end;
+--]]
 		AutoDrive.config_changed = true;
 
 	else
@@ -4310,7 +4441,6 @@ function AutoDrive.backupADFiles(self)
 	if g_server == nil and g_dedicatedServerInfo == nil then return end;
 
 	if not fileExists(g_currentMission.AutoDrive.xmlSaveFile) then
-		-- ERROR: CP FILE DOESN'T EXIST
 		return;
 	end;
 
@@ -4332,13 +4462,11 @@ function AutoDrive.restoreBackup(self)
 	local savegameIndex = g_currentMission.missionInfo.savegameIndex;
 	local savegameFolderPath = getUserProfileAppPath() .. "savegame" .. g_currentMission.missionInfo.savegameIndex;
 
-
-	if fileExists(savegameFolderPath .. '/careerSavegame.xml') then -- savegame isn't corrupted and has been saved correctly
-
+	if fileExists(savegameFolderPath .. '/careerSavegame.xml') then
+		-- savegame isn't corrupted and has been saved correctly
 		-- copy backed up files back to our savegame directory
 		copyFile(AutoDrive.adFileBackupPath, g_currentMission.AutoDrive.xmlSaveFile, true);
 		AutoDrive.adFileBackupPath = nil;
-
 	end;
 end;
 g_careerScreen.saveSavegame = Utils.appendedFunction(g_careerScreen.saveSavegame, AutoDrive.restoreBackup);

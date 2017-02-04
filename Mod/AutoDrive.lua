@@ -7,12 +7,12 @@ AutoDrive.Version = (modItem and modItem.version) and modItem.version or "0.0.0"
 AutoDrive.config_changed = false;
 AutoDrive.directory = g_currentModDirectory;
 
+--
 function AutoDrive:prerequisitesPresent(specializations)
 	return true;
 end;
 
 function AutoDrive:delete()
-
 end;
 
 function AutoDrive:MarkChanged()
@@ -25,7 +25,6 @@ function AutoDrive:GetChanged()
 end;
 
 function AutoDrive:loadMap(name)
-
 	if Steerable.load ~= nil then
 		local aNameSearch = {"vehicle.name." .. g_languageShort, "vehicle.name.en", "vehicle.name", "vehicle.storeData.name", "vehicle#type"};
 		local orgSteerableLoad = Steerable.load
@@ -206,32 +205,28 @@ function AutoDrive.readWaypointsAndMarkers(adXml, tagName)
 	end;
 
 	--
-	local tagName3 = "AutoDrive." .. self.loadedMap ..".mapmarker"
-	local mapMarker = {};
-	local mapMarkerCounter = 1;
-	mapMarker.name = getXMLString(adXml, tagName3 .. ".mm"..mapMarkerCounter..".name");
-
-	while mapMarker.name ~= nil do
-		mapMarker.id = getXMLFloat(adXml, tagName3 .. ".mm"..mapMarkerCounter..".id");
-
-		local node = createTransformGroup(mapMarker.name);
-		setTranslation(node, g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].x, g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].y + 4 ,	g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].z  );
-		mapMarker.node = node;
-
-		g_currentMission.AutoDrive.mapMarker[mapMarkerCounter] = mapMarker;
-
-		mapMarker = nil;
-		mapMarker = {};
-		mapMarkerCounter = mapMarkerCounter + 1;
-		g_currentMission.AutoDrive.mapMarkerCounter = g_currentMission.AutoDrive.mapMarkerCounter + 1;
+	local tagName3 = tagName .. ".mapmarker"
+	local mapMarkerCounter = 0
+	while true do
+		local mapMarker = {}
+		mapMarker.id   = getXMLFloat( adXml, tagName3 .. ".mm"..mapMarkerCounter..".id");
 		mapMarker.name = getXMLString(adXml, tagName3 .. ".mm"..mapMarkerCounter..".name");
+		if mapMarker.id == nil or mapMarker.name == nil then
+			break
+		end
+
+		mapMarker.node = createTransformGroup(mapMarker.name);
+		local wp = g_currentMission.AutoDrive.mapWayPoints[mapMarker.id]
+		setTranslation(mapMarker.node, wp.x, wp.y + 4, wp.z);
+
+		mapMarkerCounter = mapMarkerCounter + 1;
+		g_currentMission.AutoDrive.mapMarker[mapMarkerCounter] = mapMarker;
 	end;
+	g_currentMission.AutoDrive.mapMarkerCounter = mapMarkerCounter
 end
 
 function AutoDrive:deleteMap()
-
 	if AutoDrive:GetChanged() == true and g_server ~= nil then
-
 		if g_currentMission.AutoDrive.adXml ~= nil then
 			local adXml = g_currentMission.AutoDrive.adXml;
 
@@ -240,76 +235,10 @@ function AutoDrive:deleteMap()
 
 			local tagName = "AutoDrive." .. self.loadedMap
 			AutoDrive.writeWaypointsAndMarkers(adXml, tagName)
---[[
-			local idFullTable = {};
-			local xTable = {};
-			local yTable = {};
-			local zTable = {};
-			local outTable = {};
-			local incomingTable = {};
-			local out_costTable = {};
-			local markerNamesTable = {};
-			local markerIDsTable = {};
-
-			for i,wp in pairs(g_currentMission.AutoDrive.mapWayPoints) do
-				idFullTable[i] = wp.id;
-
-				xTable[i] = ("%.2f"):format(wp.x);
-				yTable[i] = ("%.2f"):format(wp.y);
-				zTable[i] = ("%.2f"):format(wp.z);
-
-				outTable[i] = table.concat(wp.out, ",");
-				out_costTable[i] = table.concat(wp.out_cost, ",");
-
-				local innerIncomingTable = {};
-				local innerIncomingCounter = 1;
-				for _, p2 in pairs(g_currentMission.AutoDrive.mapWayPoints) do
-					for _, out2 in pairs(p2.out) do
-						if out2 == wp.id then
-							innerIncomingTable[innerIncomingCounter] = p2.id;
-							innerIncomingCounter = innerIncomingCounter + 1;
-						end;
-					end;
-				end;
-				incomingTable[i] = table.concat(innerIncomingTable, ",")
-
-				local markerCounter = 1
-				local innerMarkerNamesTable = {}
-				local innerMarkerIDsTable = {}
-				for i2,marker in pairs(wp.marker) do
-					innerMarkerIDsTable[markerCounter] = marker
-					innerMarkerNamesTable[markerCounter] = i2
-					markerCounter = markerCounter + 1
-				end
-				markerNamesTable[i] = table.concat(innerMarkerNamesTable, ",")
-				markerIDsTable[i] = table.concat(innerMarkerIDsTable, ",")
-			end
-
-			if idFullTable[1] ~= nil then
-				local tagName2 = tagName .. ".waypoints"
-				setXMLString(adXml, tagName2 .. ".id" , table.concat(idFullTable, ",") );
-				setXMLString(adXml, tagName2 .. ".x" , table.concat(xTable, ","));
-				setXMLString(adXml, tagName2 .. ".y" , table.concat(yTable, ","));
-				setXMLString(adXml, tagName2 .. ".z" , table.concat(zTable, ","));
-				setXMLString(adXml, tagName2 .. ".out" , table.concat(outTable, ";"));
-				setXMLString(adXml, tagName2 .. ".incoming" , table.concat(incomingTable, ";") );
-				setXMLString(adXml, tagName2 .. ".out_cost" , table.concat(out_costTable, ";"));
-				if markerIDsTable[1] ~= nil then
-					setXMLString(adXml, tagName2 .. ".markerID" , table.concat(markerIDsTable, ";"));
-					setXMLString(adXml, tagName2 .. ".markerNames" , table.concat(markerNamesTable, ";"));
-				end;
-			end;
-
-			for i in pairs(g_currentMission.AutoDrive.mapMarker) do
-				setXMLInt(adXml, tagName .. ".mapmarker.mm".. i ..".id", g_currentMission.AutoDrive.mapMarker[i].id);
-				setXMLString(adXml, tagName .. ".mapmarker.mm".. i ..".name", g_currentMission.AutoDrive.mapMarker[i].name);
-			end;
---]]
 
 			saveXMLFile(adXml);
 		end;
 	end;
-
 end;
 
 function AutoDrive:load(xmlFile)
@@ -419,119 +348,21 @@ function AutoDrive:load(xmlFile)
 			--print("map " .. g_currentMission.autoLoadedMap .. " waypoints are loaded");
 			self.loadedMap = g_currentMission.autoLoadedMap;
 			if self.loadedMap ~= nil then
-
 				local tagName = "AutoDrive." .. self.loadedMap
 				AutoDrive.readWaypointsAndMarkers(adXml, tagName)
---[[
-				local tagName2 = "AutoDrive." .. self.loadedMap .. ".waypoints"
-
-				local idTable = Utils.splitString("," , getXMLString(adXml, tagName2 .. ".id"))
-				local xTable  = Utils.splitString("," , getXMLString(adXml, tagName2 .. ".x"))
-				local yTable  = Utils.splitString("," , getXMLString(adXml, tagName2 .. ".y"))
-				local zTable  = Utils.splitString("," , getXMLString(adXml, tagName2 .. ".z"))
-
-				local function splitIntoArrays(wholeText)
-					local splitted = {}
-					for i, part in pairs(Utils.splitString(";" , wholeText) do
-						splitted[i] = Utils.splitString("," , part)
-					end;
-					return splitted
-				end
-
-				local outSplitted         = splitIntoArrays( getXMLString(adXml, tagName2 .. ".out") )
-				local incomingSplitted    = splitIntoArrays( getXMLString(adXml, tagName2 .. ".incoming") )
-				local out_costSplitted    = splitIntoArrays( getXMLString(adXml, tagName2 .. ".out_cost") )
-				local markerIDSplitted    = splitIntoArrays( getXMLString(adXml, tagName2 .. ".markerID") )
-				local markerNamesSplitted = splitIntoArrays( getXMLString(adXml, tagName2 .. ".markerNames") )
-
-				local wp_counter = 0;
-				for i, id in pairs(idTable) do
-					if id ~= "" then
-						local out = {}
-						for i2,outString in pairs(outSplitted[i]) do
-							out[i2] = tonumber(outString)
-						end
-
-						local incoming = {}
-						local incoming_counter = 1
-						for i2, incomingID in pairs(incomingSplitted[i]) do
-							if incomingID ~= "" then
-								incoming[incoming_counter] = tonumber(incomingID)
-							end
-							incoming_counter = incoming_counter +1
-						end
-
-						local out_cost = {}
-						for i2,out_costString in pairs(out_costSplitted[i]) do
-							out_cost[i2] = tonumber(out_costString)
-						end
-
-						local marker = {}
-						for i2, markerName in pairs(markerNamesSplitted[i]) do
-							if markerName ~= "" then
-								marker[markerName] = tonumber(markerIDSplitted[i][i2])
-							end
-						end
-
-						local wp = {
-							id = tonumber(id)
-							,x = tonumber(xTable[i])
-							,y = tonumber(yTable[i])
-							,z = tonumber(zTable[i])
-							,out = out
-							,incoming = incoming
-							,out_cost = out_cost
-							,marker = marker
-						}
-						wp_counter = wp_counter + 1
-						g_currentMission.AutoDrive.mapWayPoints[wp_counter] = wp
-					end
-				end
-
-				if g_currentMission.AutoDrive.mapWayPoints[wp_counter] ~= nil then
-					print("AD: Loaded Waypoints: " .. wp_counter);
-					g_currentMission.AutoDrive.mapWayPointsCounter = wp_counter;
-				else
-					g_currentMission.AutoDrive.mapWayPointsCounter = 0;
-				end;
-
-				--
-				local tagName3 = "AutoDrive." .. self.loadedMap ..".mapmarker"
-				local mapMarker = {};
-				local mapMarkerCounter = 1;
-				mapMarker.name = getXMLString(adXml, tagName3 .. ".mm"..mapMarkerCounter..".name");
-
-				while mapMarker.name ~= nil do
-					mapMarker.id = getXMLFloat(adXml, tagName3 .. ".mm"..mapMarkerCounter..".id");
-
-					local node = createTransformGroup(mapMarker.name);
-					setTranslation(node, g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].x, g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].y + 4 ,	g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].z  );
-					mapMarker.node = node;
-
-					g_currentMission.AutoDrive.mapMarker[mapMarkerCounter] = mapMarker;
-
-					mapMarker = nil;
-					mapMarker = {};
-					mapMarkerCounter = mapMarkerCounter + 1;
-					g_currentMission.AutoDrive.mapMarkerCounter = g_currentMission.AutoDrive.mapMarkerCounter + 1;
-					mapMarker.name = getXMLString(adXml, tagName3 .. ".mm"..mapMarkerCounter..".name");
-				end;
---]]
 			end;
 
 			local recalculate = getXMLBool(adXml, "AutoDrive.Recalculation");
 
 			if recalculate == true then
-				for i2,point in pairs(g_currentMission.AutoDrive.mapWayPoints) do
+				for _, point in pairs(g_currentMission.AutoDrive.mapWayPoints) do
 					point.marker = {};
 				end;
 
 				print("AD: recalculating routes");
-				for i, marker in pairs(g_currentMission.AutoDrive.mapMarker) do
-
-					local tempAD = AutoDrive:dijkstra(g_currentMission.AutoDrive.mapWayPoints, marker.id,"incoming");
-
-					for i2,point in pairs(g_currentMission.AutoDrive.mapWayPoints) do
+				for _, marker in pairs(g_currentMission.AutoDrive.mapMarker) do
+					local tempAD = AutoDrive:dijkstra(g_currentMission.AutoDrive.mapWayPoints, marker.id, "incoming");
+					for _, point in pairs(g_currentMission.AutoDrive.mapWayPoints) do
 						point.marker[marker.name] = tempAD.pre[point.id];
 					end;
 				end;
@@ -564,22 +395,19 @@ function AutoDrive:load(xmlFile)
 		AutoDrive:loadHud();
 	end;
 
-
+	--
 	AutoDrive.Triggers = {};
 	AutoDrive.Triggers.tipTriggers = {};
 	AutoDrive.Triggers.siloTriggers = {};
 
 	for _,trigger in pairs(g_currentMission.tipTriggers) do
-
 		local triggerLocation = {};
 		local x,y,z = getWorldTranslation(trigger.rootNode);
 		triggerLocation.x = x;
 		triggerLocation.y = y;
 		triggerLocation.z = z;
 		--print("trigger: " .. trigger.stationName .. " pos: " .. x .. "/" .. y .. "/" .. z);
-
 	end;
-
 end;
 
 function AutoDrive:loadHud()
@@ -715,9 +543,6 @@ function AutoDrive:loadHud()
 	AutoDrive.Hud.Background.divider.posY = AutoDrive.Hud.posY + AutoDrive.Hud.Background.height - 0.045;
 	AutoDrive.Hud.Background.divider.ov = Overlay:new(nil, result, AutoDrive.Hud.Background.divider.posX, AutoDrive.Hud.Background.divider.posY ,	AutoDrive.Hud.Background.divider.width, AutoDrive.Hud.Background.divider.height);
 
-
-
-
 	--[[
 	AutoDrive.Hud.Background.target = {};
 	img1 = Utils.getNoNil("img/ADHud_new.dds", "empty.dds" )
@@ -766,21 +591,24 @@ function AutoDrive:AddButton(name, img, img2, toolTip, on, visible)
 		AutoDrive.Hud.colCurrent = AutoDrive.Hud.cols;
 	end;
 	AutoDrive.Hud.rowCurrent = math.ceil(AutoDrive.Hud.buttonCounter / AutoDrive.Hud.cols);
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter] = {};
+
+	--
+	local btn = {};
+
 	local buttonImg = Utils.getNoNil("img/" .. img, "empty.dds" )
 	local state, result = pcall( Utils.getFilename, buttonImg, AutoDrive.directory )
 	if not state then
 		print("ERROR: "..tostring(result).." (buttinImg: "..tostring(buttinImg)..")")
 		return
 	end
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].posX = AutoDrive.Hud.posX + AutoDrive.Hud.colCurrent * AutoDrive.Hud.borderX + (AutoDrive.Hud.colCurrent	- 1) * AutoDrive.Hud.buttonWidth; -- + AutoDrive.Hud.borderX  ;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].posY = AutoDrive.Hud.posY + (AutoDrive.Hud.rowCurrent) * AutoDrive.Hud.borderY +	(AutoDrive.Hud.rowCurrent-1) * AutoDrive.Hud.buttonHeight;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].width = AutoDrive.Hud.buttonWidth;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].height = AutoDrive.Hud.buttonHeight;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].name = name;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].img_on = result;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].isVisible = visible;
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].toolTip = string.sub(g_i18n:getText(toolTip),4,string.len(g_i18n:getText(toolTip)))
+	btn.posX = AutoDrive.Hud.posX + AutoDrive.Hud.colCurrent * AutoDrive.Hud.borderX + (AutoDrive.Hud.colCurrent - 1) * AutoDrive.Hud.buttonWidth;
+	btn.posY = AutoDrive.Hud.posY + AutoDrive.Hud.rowCurrent * AutoDrive.Hud.borderY + (AutoDrive.Hud.rowCurrent - 1) * AutoDrive.Hud.buttonHeight;
+	btn.width = AutoDrive.Hud.buttonWidth;
+	btn.height = AutoDrive.Hud.buttonHeight;
+	btn.name = name;
+	btn.img_on = result;
+	btn.isVisible = visible;
+	btn.toolTip = string.sub(g_i18n:getText(toolTip),4,string.len(g_i18n:getText(toolTip)))
 
 	if img2 ~= nil then
 		buttonImg = Utils.getNoNil("img/" .. img2, "empty.dds" )
@@ -789,9 +617,9 @@ function AutoDrive:AddButton(name, img, img2, toolTip, on, visible)
 			print("ERROR: "..tostring(result).." (buttinImg: "..tostring(buttinImg)..")")
 			return
 		end
-		AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].img_off = result;
+		btn.img_off = result;
 	else
-		AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].img_off = nil;
+		btn.img_off = nil;
 	end;
 
 	if name == "input_silomode" then
@@ -801,7 +629,7 @@ function AutoDrive:AddButton(name, img, img2, toolTip, on, visible)
 			print("ERROR: "..tostring(result).." (buttinImg: "..tostring(buttinImg)..")")
 			return
 		end
-		AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].img_3 = result;
+		btn.img_3 = result;
 	end;
 	if name == "input_record" then
 		buttonImg = Utils.getNoNil("img/" .. "record_dual.dds", "empty.dds" )
@@ -810,18 +638,19 @@ function AutoDrive:AddButton(name, img, img2, toolTip, on, visible)
 			print("ERROR: "..tostring(result).." (buttinImg: "..tostring(buttinImg)..")")
 			return
 		end
-		AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].img_dual = result;
+		btn.img_dual = result;
 	end;
 
 	if on then
-		AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].img_active = AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].img_on;
+		btn.img_active = btn.img_on;
 	else
-		AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].img_active = AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].img_off;
+		btn.img_active = btn.img_off;
 	end;
 
-	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].ov = Overlay:new(nil, AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].img_active,AutoDrive.Hud.Button	[AutoDrive.Hud.buttonCounter].posX ,AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter].posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+	btn.ov = Overlay:new(name, btn.img_active, btn.posX,btn.posY, AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
 
-
+	--
+	AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter] = btn
 end;
 
 function AutoDrive:InputHandling(vehicle, input)
@@ -943,13 +772,13 @@ function AutoDrive:InputHandling(vehicle, input)
 
 			for _,button in pairs(AutoDrive.Hud.Buttons) do
 				if button.name == "input_start_stop" then
-					local buttonImg = "";
 					if vehicle.bActive == true then
 						button.img_active = button.img_on;
 					else
 						button.img_active = button.img_off;
 					end;
-					button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+					--button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+					button.ov:setImage(button.img_active)
 				end;
 			end;
 
@@ -990,7 +819,8 @@ function AutoDrive:InputHandling(vehicle, input)
 					else
 						button.img_active = button.img_off;
 					end;
-					button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+					--button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+					button.ov:setImage(button.img_active)
 				end;
 			end;
 
@@ -1020,13 +850,13 @@ function AutoDrive:InputHandling(vehicle, input)
 
 			for _,button in pairs(AutoDrive.Hud.Buttons) do
 				if button.name == "input_record" then
-					local buttonImg = "";
 					if vehicle.bcreateMode == true then
 						button.img_active = button.img_on;
 					else
 						button.img_active = button.img_off;
 					end;
-					button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+					--button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+					button.ov:setImage(button.img_active)
 				end;
 			end;
 
@@ -1037,13 +867,13 @@ function AutoDrive:InputHandling(vehicle, input)
 
 			for _,button in pairs(AutoDrive.Hud.Buttons) do
 				if button.name == "input_showClosest" then
-					local buttonImg = "";
 					if vehicle.bShowDebugMapMarker == true then
 						button.img_active = button.img_on;
 					else
 						button.img_active = button.img_off;
 					end;
-					button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+					--button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+					button.ov:setImage(button.img_active)
 				end;
 			end;
 
@@ -1073,13 +903,13 @@ function AutoDrive:InputHandling(vehicle, input)
 
 			for _,button in pairs(AutoDrive.Hud.Buttons) do
 				if button.name == "input_showNeighbor" then
-					local buttonImg = "";
 					if vehicle.bShowSelectedDebugPoint == true then
 						button.img_active = button.img_on;
 					else
 						button.img_active = button.img_off;
 					end;
-					button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+					--button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+					button.ov:setImage(button.img_active)
 				end;
 			end;
 
@@ -1403,8 +1233,6 @@ function init(self)
 	self.bDisplay = 1;
 	if self.ad == nil then
 		self.ad = {};
-
-
 	end;
 
 	self.bLongFormat = 0;
@@ -1434,8 +1262,7 @@ function init(self)
 			self.ntargetSelected = g_currentMission.AutoDrive.mapMarker[1].id;
 			self.nMapMarkerSelected = 1;
 			self.sTargetSelected = g_currentMission.AutoDrive.mapMarker[1].name;
-			local translation = AutoDrive:translate(sTargetSelected);
-			sTargetSelected = translation;
+			--self.sTargetSelected = AutoDrive:translate(self.sTargetSelected);
 		end;
 	end;
 	self.bTargetMode = true;
@@ -1497,8 +1324,7 @@ function init(self)
 			self.ntargetSelected_Unload = g_currentMission.AutoDrive.mapMarker[1].id;
 			self.nMapMarkerSelected_Unload = 1;
 			self.sTargetSelected_Unload = g_currentMission.AutoDrive.mapMarker[1].name;
-			local translation = AutoDrive:translate(sTargetSelected_Unload);
-			sTargetSelected_Unload = translation;
+			--self.sTargetSelected_Unload = AutoDrive:translate(self.sTargetSelected_Unload);
 		end;
 	end;
 
@@ -1524,7 +1350,7 @@ function init(self)
 			self.frontLoaderCam = createCamera("frontLoaderCam",  60, 0.02, 200);
 			local node = self.components[1].node -- self.frontloaderAttacher.attacherJoint.rootNode;
 			local nodeTool = nil;
-			for _,impl in pairs(self.attachedImplements) do
+			for _, impl in pairs(self.attachedImplements) do
 				if impl.object ~= nil then
 					if impl.object.typeName == "attachableFrontloader" then
 						--print("Selected frontloader attachment as root node");
@@ -1562,36 +1388,34 @@ function init(self)
 	self.sEnteredChosenDestination = "";
 
 	self.trafficVehicle = nil;
-
 end;
 
-function AutoDrive:translate(text)
+--function AutoDrive:translate(text)
+--
+--	if text == "Hof" then
+--		return g_i18n:getText("AD_Hof");
+--	end;
+--	if text == "Kuhstall" then
+--		return g_i18n:getText("AD_Kuhstall");
+--	end;
+--	if text == "Schweinestall" then
+--		return g_i18n:getText("AD_Schweinestall");
+--	end;
+--	if text == "Schafsweide" then
+--		return g_i18n:getText("AD_Schafsweide");
+--	end;
+--	if text == "Tankstelle" then
+--		return g_i18n:getText("AD_Tankstelle");
+--	end;
+--	if text == "Viehhandel" then
+--		return g_i18n:getText("AD_Viehhandel");
+--	end;
+--
+--	return text;
+--
+--end;
 
-	if text == "Hof" then
-		return g_i18n:getText("AD_Hof");
-	end;
-	if text == "Kuhstall" then
-		return g_i18n:getText("AD_Kuhstall");
-	end;
-	if text == "Schweinestall" then
-		return g_i18n:getText("AD_Schweinestall");
-	end;
-	if text == "Schafsweide" then
-		return g_i18n:getText("AD_Schafsweide");
-	end;
-	if text == "Tankstelle" then
-		return g_i18n:getText("AD_Tankstelle");
-	end;
-	if text == "Viehhandel" then
-		return g_i18n:getText("AD_Viehhandel");
-	end;
-
-	return text;
-
-end;
-
-function AutoDrive:newMouseEvent(superFunc,posX, posY, isDown, isUp, button)
-
+function AutoDrive:newMouseEvent(superFunc, posX, posY, isDown, isUp, button)
 	if g_currentMission.AutoDrive.showMouse then
 		local x = InputBinding.mouseMovementX;
 		local y = InputBinding.mouseMovementY;
@@ -1606,52 +1430,67 @@ function AutoDrive:newMouseEvent(superFunc,posX, posY, isDown, isUp, button)
 end;
 
 function AutoDrive:mouseEvent(posX, posY, isDown, isUp, button)
-	if self == g_currentMission.controlledVehicle and AutoDrive.Hud.showHud == true then
-		if g_currentMission.AutoDrive.showMouse then
-			local buttonHovered = false;
-			for _,button in pairs(AutoDrive.Hud.Buttons) do
-
-				if posX > button.posX and posX < (button.posX + button.width) and posY > button.posY and posY < (button.posY + button.height) and	button.isVisible then
-					--print("Clicked button " .. button.name);
-					if self.ad.sToolTip ~= button.toolTip then
-						self.ad.sToolTip = button.toolTip;
-						self.ad.nToolTipTimer = 6000;
-						self.ad.nToolTipWait = 300;
-					end;
-					buttonHovered = true;
+	if self == g_currentMission.controlledVehicle
+	and g_currentMission.AutoDrive.showMouse
+	and AutoDrive.Hud.showHud == true
+	then
+		local buttonHovered = false;
+		for _, button in pairs(AutoDrive.Hud.Buttons) do
+			if  button.isVisible
+			and posX > (button.posX)
+			and posX < (button.posX + button.width)
+			and posY > (button.posY)
+			and posY < (button.posY + button.height)
+			then
+				if self.ad.sToolTip ~= button.toolTip then
+					self.ad.sToolTip = button.toolTip;
+					self.ad.nToolTipTimer = 6000;
+					self.ad.nToolTipWait = 300;
 				end;
-			end;
-			if not buttonHovered then
-				self.ad.sToolTip = "";
-			end;
-		end;
+				buttonHovered = true;
 
-		if g_currentMission.AutoDrive.showMouse and button == 1 and isDown then
-
-			for _,button in pairs(AutoDrive.Hud.Buttons) do
-
-				if posX > button.posX and posX < (button.posX + button.width) and posY > button.posY and posY < (button.posY + button.height) and	button.isVisible then
+				if button == 1 and isDown then
 					--print("Clicked button " .. button.name);
 					AutoDrive:InputHandling(self, button.name);
-				end;
-
+				end
+				break
 			end;
+		end;
+		if not buttonHovered then
+			self.ad.sToolTip = "";
+		end;
 
-			if posX > (AutoDrive.Hud.Background.close_small.posX) and posX < (AutoDrive.Hud.Background.close_small.posX +	AutoDrive.Hud.Background.close_small.width) and posY > (AutoDrive.Hud.Background.close_small.posY) and posY  	(AutoDrive.Hud.Background.close_small.posY + AutoDrive.Hud.Background.close_small.height) then
-				if AutoDrive.Hud.showHud == false then
-					AutoDrive.Hud.showHud = true;
-				else
-					AutoDrive.Hud.showHud = false;
-					if g_currentMission.AutoDrive.showMouse == false then
-						--g_mouseControlsHelp.active = false
-						g_currentMission.AutoDrive.showMouse = true;
-						InputBinding.setShowMouseCursor(true);
-					else
-						--g_mouseControlsHelp.active = true
-						InputBinding.setShowMouseCursor(false);
-						g_currentMission.AutoDrive.showMouse = false;
-					end;
-				end;
+		if button == 1 and isDown then
+--			for _,button in pairs(AutoDrive.Hud.Buttons) do
+--
+--				if posX > button.posX and posX < (button.posX + button.width) and posY > button.posY and posY < (button.posY + button.height) and	button.isVisible then
+--					--print("Clicked button " .. button.name);
+--					AutoDrive:InputHandling(self, button.name);
+--				end;
+--
+--			end;
+
+			local button = AutoDrive.Hud.Background.close_small
+			if  posX > (button.posX)
+			and posX < (button.posX + button.width)
+			and posY > (button.posY)
+			and posY < (button.posY + button.height)
+			then
+				AutoDrive:InputHandling(self, "input_toggleHud")
+--				if AutoDrive.Hud.showHud == false then
+--					AutoDrive.Hud.showHud = true;
+--				else
+--					AutoDrive.Hud.showHud = false;
+--					if g_currentMission.AutoDrive.showMouse == false then
+--						--g_mouseControlsHelp.active = false
+--						g_currentMission.AutoDrive.showMouse = true;
+--						InputBinding.setShowMouseCursor(true);
+--					else
+--						--g_mouseControlsHelp.active = true
+--						InputBinding.setShowMouseCursor(false);
+--						g_currentMission.AutoDrive.showMouse = false;
+--					end;
+--				end;
 			end;
 
 			local adPosX = AutoDrive.Hud.posX + AutoDrive.Hud.Background.destination.width; -- + AutoDrive.Hud.borderX; --0.03 + g_currentMission.helpBoxWidth
@@ -1670,135 +1509,122 @@ function AutoDrive:mouseEvent(posX, posY, isDown, isUp, button)
 					self.isBroken = false;
 				end;
 			end;
-
-
 		end;
 	end;
-
-
 end;
 
 function AutoDrive:onLeave()
-	if g_currentMission.AutoDrive.showMouse then
-		InputBinding.setShowMouseCursor(false);
-		g_currentMission.AutoDrive.showMouse = false;
-	end
+	g_currentMission.AutoDrive.showMouse = false;
+	InputBinding.setShowMouseCursor(g_currentMission.AutoDrive.showMouse);
 end;
 
 function AutoDrive:keyEvent(unicode, sym, modifier, isDown)
-
-	if self == g_currentMission.controlledVehicle then
-
+	if self == g_currentMission.controlledVehicle
+	and isDown
+	then
 		--print("Unicode: " .. unicode .. " sym: " .. sym);
-
-		if isDown and self.bEnteringMapMarker then
+		if self.bEnteringMapMarker then
 			if sym == 13 then
+				-- Enter
 				self.bEnteringMapMarker = false;
 				self.isBroken = false;
-			else
-				if sym == 8 then
-					self.sEnteredMapMarkerString = string.sub(self.sEnteredMapMarkerString,1,string.len(self.sEnteredMapMarkerString)-1)
-				else
-					if unicode ~= 0 then
-						self.sEnteredMapMarkerString = self.sEnteredMapMarkerString .. string.char(unicode);
-					end;
-				end;
+			elseif sym == 8 then
+				-- Backspace
+				self.sEnteredMapMarkerString = string.sub(self.sEnteredMapMarkerString,1,string.len(self.sEnteredMapMarkerString)-1)
+			elseif unicode ~= 0 then
+				-- 'character'
+				self.sEnteredMapMarkerString = self.sEnteredMapMarkerString .. string.char(unicode);
 			end;
-		end;
-		if isDown and self.bChoosingDestination then
+		elseif self.bChoosingDestination then
 			if sym == 13 then
+				-- Enter
 				self.bChoosingDestination = false;
 				self.sChosenDestination = "";
 				self.sEnteredChosenDestination = "";
 				self.isBroken = false;
 				g_currentMission.isPlayerFrozen = false;
-			else
-				if sym == 8 then
-					self.sEnteredChosenDestination = string.sub(self.sEnteredChosenDestination,1,string.len(self.sEnteredChosenDestination)-1)
-				else
-					if sym == 9 then
-						local foundMatch = false;
-						local behindCurrent = false;
-						local markerID = -1;
-						local markerIndex = -1;
-						if self.sChosenDestination == "" then
-							behindCurrent = true;
-						end;
-						for _,marker in pairs( g_currentMission.AutoDrive.mapMarker) do
-							local tempName = self.sChosenDestination;
-							if string.find(marker.name, self.sEnteredChosenDestination) == 1 and behindCurrent and not foundMatch then
-								self.sChosenDestination = marker.name;
-								markerID = marker.id;
-								markerIndex = _;
-								foundMatch = true;
-							end;
-							if tempName == marker.name then
-								behindCurrent = true;
-							end;
-						end;
-						if behindCurrent == true and foundMatch == false then
-							foundMatch = false;
-							for _,marker in pairs( g_currentMission.AutoDrive.mapMarker) do
-
-								if string.find(marker.name, self.sEnteredChosenDestination) == 1 and not foundMatch then
-									self.sChosenDestination = marker.name;
-									markerID = marker.id;
-									markerIndex = _;
-									foundMatch = true;
-								end;
-							end;
-						end;
-						if self.sChosenDestination ~= "" then
-							self.nMapMarkerSelected = markerIndex;
-							self.ntargetSelected = g_currentMission.AutoDrive.mapMarker[self.nMapMarkerSelected].id;
-							self.sTargetSelected = g_currentMission.AutoDrive.mapMarker[self.nMapMarkerSelected].name;
-							local translation = AutoDrive:translate(self.sTargetSelected);
-							self.sTargetSelected = translation;
-						end;
-
-					else
-						if unicode ~= 0 then
-							self.sEnteredChosenDestination = self.sEnteredChosenDestination .. string.char(unicode);
+			elseif sym == 8 then
+				-- Backspace
+				self.sEnteredChosenDestination = string.sub(self.sEnteredChosenDestination,1,string.len(self.sEnteredChosenDestination)-1)
+			elseif sym == 9 then
+				-- Tab
+				local foundMatch = false;
+				local behindCurrent = false;
+				local markerID = -1;
+				local markerIndex = -1;
+				if self.sChosenDestination == "" then
+					behindCurrent = true;
+				end;
+				for i, marker in pairs(g_currentMission.AutoDrive.mapMarker) do
+					local tempName = self.sChosenDestination;
+					if string.find(marker.name, self.sEnteredChosenDestination) == 1 and behindCurrent and not foundMatch then
+						self.sChosenDestination = marker.name;
+						markerID = marker.id;
+						markerIndex = i;
+						foundMatch = true;
+					end;
+					if tempName == marker.name then
+						behindCurrent = true;
+					end;
+				end;
+				if behindCurrent == true and foundMatch == false then
+					for i, marker in pairs(g_currentMission.AutoDrive.mapMarker) do
+						if string.find(marker.name, self.sEnteredChosenDestination) == 1 and then
+							self.sChosenDestination = marker.name;
+							markerID = marker.id;
+							markerIndex = i;
+							break
 						end;
 					end;
 				end;
+				if self.sChosenDestination ~= "" then
+					self.nMapMarkerSelected = markerIndex;
+					self.ntargetSelected = g_currentMission.AutoDrive.mapMarker[self.nMapMarkerSelected].id;
+					self.sTargetSelected = g_currentMission.AutoDrive.mapMarker[self.nMapMarkerSelected].name;
+					--self.sTargetSelected = AutoDrive:translate(self.sTargetSelected);
+				end;
+			elseif unicode ~= 0 then
+				-- 'character'
+				self.sEnteredChosenDestination = self.sEnteredChosenDestination .. string.char(unicode);
 			end;
 		end;
-
 	end;
-
 end;
 
 function AutoDrive:deactivate(self,stopVehicle)
-				--[[
-				if stopVehicle == true then
-					local x,y,z = getWorldTranslation( self.components[1].node );
-					local xl,yl,zl = worldToLocal(self.components[1].node, self.nTargetX,y,self.nTargetZ);
-					AIVehicleUtil.driveToPoint(self, dt, 0, true, self.bDrivingForward, xl, zl, 0, false );
-					self:setCruiseControlState(Drivable.CRUISECONTROL_STATE_OFF);
-				end;
-				--]]
-				self.bActive = false;
-				self.forceIsActive = false;
-				self.stopMotorOnLeave = true;
-				self.disableCharacterOnLeave = true;
+	--[[
+	if stopVehicle == true then
+		local x,y,z = getWorldTranslation( self.components[1].node );
+		local xl,yl,zl = worldToLocal(self.components[1].node, self.nTargetX,y,self.nTargetZ);
+		AIVehicleUtil.driveToPoint(self, dt, 0, true, self.bDrivingForward, xl, zl, 0, false );
+		self:setCruiseControlState(Drivable.CRUISECONTROL_STATE_OFF);
+	end;
+	--]]
+	self.bActive = false;
+	self.forceIsActive = false;
+	self.stopMotorOnLeave = true;
+	self.disableCharacterOnLeave = true;
 
-				self.bInitialized = false;
-				self.nCurrentWayPoint = 0;
-				self.bDrivingForward = true;
-				self.previousSpeed = 10;
-				if self.steeringEnabled == false then
-					self.steeringEnabled = true;
-				end
-				self:setCruiseControlState(Drivable.CRUISECONTROL_STATE_OFF);
+	self.bInitialized = false;
+	self.nCurrentWayPoint = 0;
+	self.bDrivingForward = true;
+	self.previousSpeed = 10;
+	if self.steeringEnabled == false then
+		self.steeringEnabled = true;
+	end
+	self:setCruiseControlState(Drivable.CRUISECONTROL_STATE_OFF);
 
-				--self.isControlled = false;
+	--self.isControlled = false;
 
-				--self.printMessage = g_i18n:getText("AD_Deactivated");
-				--self.nPrintTime = 3000;
+	--self.printMessage = g_i18n:getText("AD_Deactivated");
+	--self.nPrintTime = 3000;
 end;
 
 function AutoDrive:update(dt)
+
+	if self.moduleInitialized == nil then
+		init(self);
+	end;
 
 	if self == g_currentMission.controlledVehicle then
 		if InputBinding.hasEvent(InputBinding.ADSilomode)             then AutoDrive:InputHandling(self, "input_silomode") end
@@ -1832,20 +1658,14 @@ function AutoDrive:update(dt)
 		if InputBinding.hasEvent(InputBinding.ADDebugDeleteDestination) then AutoDrive:InputHandling(self, "input_removeDestination") end
 	end;
 
-	if self.moduleInitialized == nil then
-		init(self);
-	end;
-
-	if g_currentMission.AutoDrive.Recalculation ~= nil then
-		local adRecalc = g_currentMission.AutoDrive.Recalculation
-		if adRecalc.continue == true then
-			adRecalc.nextCalculationSkipFrames = adRecalc.nextCalculationSkipFrames - 1;
-			if adRecalc.nextCalculationSkipFrames <= 0 then
-				adRecalc.nextCalculationSkipFrames = 6;
-				local recalculationPercentage = AutoDrive:ContiniousRecalculation();
-				AutoDrive.nPrintTime = 10000;
-				AutoDrive.printMessage = g_i18n:getText("AD_Recalculationg_routes_status") .. " " .. recalculationPercentage .. "%";
-			end;
+	local adRecalc = g_currentMission.AutoDrive.Recalculation
+	if adRecalc ~= nil and adRecalc.continue == true then
+		adRecalc.nextCalculationSkipFrames = adRecalc.nextCalculationSkipFrames - 1;
+		if adRecalc.nextCalculationSkipFrames <= 0 then
+			adRecalc.nextCalculationSkipFrames = 6;
+			local recalculationPercentage = AutoDrive:ContiniousRecalculation();
+			AutoDrive.printMessage = g_i18n:getText("AD_Recalculationg_routes_status") .. " " .. recalculationPercentage .. "%";
+			AutoDrive.nPrintTime = 10000;
 		end;
 	end;
 
@@ -2525,7 +2345,6 @@ function AutoDrive:updateButtons(vehicle)
 
 	for _,button in pairs(AutoDrive.Hud.Buttons) do
 		if button.name == "input_silomode" then
-			local buttonImg = "";
 			if vehicle.bReverseTrack == true then
 				button.img_active = button.img_on;
 			else
@@ -2535,12 +2354,11 @@ function AutoDrive:updateButtons(vehicle)
 					button.img_active = button.img_off;
 				end;
 			end;
-
-			button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+			--button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+			button.ov:setImage(button.img_active)
 		end;
 
 		if button.name == "input_record" then
-			local buttonImg = "";
 			if vehicle.bcreateMode == true then
 				button.img_active = button.img_on;
 				if vehicle.bcreateModeDual == true then
@@ -2549,51 +2367,52 @@ function AutoDrive:updateButtons(vehicle)
 			else
 				button.img_active = button.img_off;
 			end;
-			button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+			--button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+			button.ov:setImage(button.img_active)
 		end;
 
 		if button.name == "input_start_stop" then
-			local buttonImg = "";
 			if vehicle.bActive == true then
 				button.img_active = button.img_on;
 			else
 				button.img_active = button.img_off;
 			end;
-			button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+			--button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+			button.ov:setImage(button.img_active)
 		end;
 
 		if button.name == "input_debug" then
-			local buttonImg = "";
 			if vehicle.bCreateMapPoints == true then
 				button.img_active = button.img_on;
 			else
 				button.img_active = button.img_off;
 			end;
-			button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+			--button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+			button.ov:setImage(button.img_active)
 		end;
 
 		--[[
 		if button.name == "input_showClosest" then
-			local buttonImg = "";
 			if vehicle.bShowDebugMapMarker == true then
 				button.img_active = button.img_on;
 			else
 				button.img_active = button.img_off;
 			end;
-			button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+			--button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+			button.ov:setImage(button.img_active)
 		end;
 		--]]
 
 		if button.name == "input_showNeighbor" then
 			button.isVisible = vehicle.bCreateMapPoints
 
-			local buttonImg = "";
 			if vehicle.bShowSelectedDebugPoint == true then
 				button.img_active = button.img_on;
 			else
 				button.img_active = button.img_off;
 			end;
-			button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+			--button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+			button.ov:setImage(button.img_active)
 		end;
 
 		if button.name == "input_toggleConnection"
@@ -2605,7 +2424,6 @@ function AutoDrive:updateButtons(vehicle)
 		end;
 
 		if button.name == "input_recalculate" then
-			local buttonImg = "";
 			if AutoDrive:GetChanged() == true then
 				button.isVisible = true;
 			else
@@ -2621,12 +2439,11 @@ function AutoDrive:updateButtons(vehicle)
 			else
 				button.img_active = button.img_on;
 			end;
-
-			button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+			--button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+			button.ov:setImage(button.img_active)
 		end;
 
 		if button.name == "input_removeWaypoint" then
-			local buttonImg = "";
 			if vehicle.bCreateMapPoints == true then
 				button.isVisible = true
 				button.img_active = button.img_on;
@@ -2634,8 +2451,8 @@ function AutoDrive:updateButtons(vehicle)
 				button.isVisible = false;
 				button.img_active = button.img_off;
 			end;
-
-			button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+			--button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
+			button.ov:setImage(button.img_active)
 		end;
 		--[[
 		if button.name == "input_nextTarget_Unload" then
@@ -2662,7 +2479,6 @@ function AutoDrive:updateButtons(vehicle)
 		end;
 		--]]
 	end;
-
 end;
 
 function AutoDrive:log(dt)
@@ -3636,9 +3452,9 @@ function AutoDrive:detectAdTrafficOnRoute(vehicle)
 end
 
 function AutoDrive:ExportRoutes()
-
 	AutoDrive.adExportSaveFolderPath = getUserProfileAppPath() .. 'autoDriveExport';
 	createFolder(AutoDrive.adExportSaveFolderPath);
+
 	AutoDrive.adImportSaveFolderPath = getUserProfileAppPath() .. 'autoDriveImport';
 	createFolder(AutoDrive.adImportSaveFolderPath);
 
@@ -3647,215 +3463,31 @@ function AutoDrive:ExportRoutes()
 	print("AD: creating xml file at " .. exportFile);
 	local exportXml = createXMLFile("AutoDrive_XML", exportFile, "AutoDrive");
 
-	--saveXMLFile(exportXml);
-
 	setXMLString(exportXml, "AutoDrive.Version", AutoDrive.Version);
-	setXMLBool(exportXml,"AutoDrive.Recalculation", not g_currentMission.AutoDrive.handledRecalculation);
+	setXMLBool(exportXml, "AutoDrive.Recalculation", not g_currentMission.AutoDrive.handledRecalculation);
 
 	local tagName = "AutoDrive"
 	AutoDrive.writeWaypointsAndMarkers(exportXml, tagName)
---[[
-	local idFullTable = {};
-	local xTable = {};
-	local yTable = {};
-	local zTable = {};
-	local outTable = {};
-	local incomingTable = {};
-	local out_costTable = {};
-	local markerNamesTable = {};
-	local markerIDsTable = {};
 
-	for i,p in pairs(g_currentMission.AutoDrive.mapWayPoints) do
-		idFullTable[i] = p.id;
-		xTable[i] = ("%.2f"):format(p.x);
-		yTable[i] = ("%.2f"):format(p.y);
-		zTable[i] = ("%.2f"):format(p.z);
-
-		outTable[i] = table.concat(p.out, ",");
-
-		local innerIncomingTable = {};
-		local innerIncomingCounter = 1;
-		for i2, p2 in pairs(g_currentMission.AutoDrive.mapWayPoints) do
-			for i3, out2 in pairs(p2.out) do
-				if out2 == p.id then
-					innerIncomingTable[innerIncomingCounter] = p2.id;
-					innerIncomingCounter = innerIncomingCounter + 1;
-				end;
-			end;
-		end;
-		incomingTable[i] = table.concat(innerIncomingTable, ",");
-		out_costTable[i] = table.concat(p.out_cost, ",");
-
-		local markerCounter = 1;
-		local innerMarkerNamesTable = {};
-		local innerMarkerIDsTable = {};
-		for i2,marker in pairs(p.marker) do
-			innerMarkerIDsTable[markerCounter] = marker;
-			innerMarkerNamesTable[markerCounter] = i2;
-			markerCounter = markerCounter + 1;
-		end;
-		markerNamesTable[i] = table.concat(innerMarkerNamesTable, ",");
-		markerIDsTable[i] = table.concat(innerMarkerIDsTable, ",");
-	end;
-
-	if idFullTable[1] ~= nil then
-		local tagName = "AutoDrive.waypoints"
-		setXMLString(exportXml, tagName .. ".id" , table.concat(idFullTable, ",") );
-		setXMLString(exportXml, tagName .. ".x" , table.concat(xTable, ","));
-		setXMLString(exportXml, tagName .. ".y" , table.concat(yTable, ","));
-		setXMLString(exportXml, tagName .. ".z" , table.concat(zTable, ","));
-		setXMLString(exportXml, tagName .. ".out" , table.concat(outTable, ";"));
-		setXMLString(exportXml, tagName .. ".incoming" , table.concat(incomingTable, ";") );
-		setXMLString(exportXml, tagName .. ".out_cost" , table.concat(out_costTable, ";"));
-		if markerIDsTable[1] ~= nil then
-			setXMLString(exportXml, tagName .. ".markerID" , table.concat(markerIDsTable, ";"));
-			setXMLString(exportXml, tagName .. ".markerNames" , table.concat(markerNamesTable, ";"));
-		end;
-	end;
-
-	local tagName = "AutoDrive.mapmarker"
-	for _, mm in pairs(g_currentMission.AutoDrive.mapMarker) do
-		setXMLInt(exportXml,    tagName .. ".mm".. i ..".id", mm.id);
-		setXMLString(exportXml, tagName .. ".mm".. i ..".name", mm.name);
-	end;
---]]
 	saveXMLFile(exportXml);
 end;
 
 function AutoDrive:ImportRoutes()
-
 	AutoDrive.adImportSaveFolderPath = getUserProfileAppPath() .. 'autoDriveImport';
 
 	local importFile = AutoDrive.adImportSaveFolderPath  .. "/AutoDrive_export.xml";
 
-	local importXml = nil;
 	if fileExists(importFile) then
 		print("AD: Importing xml file from " .. importFile);
-		importXml = loadXMLFile("AutoDrive_XML", importFile);
+		local importXml = loadXMLFile("AutoDrive_XML", importFile);
 
 		local tagName = "AutoDrive"
 		AutoDrive.readWaypointsAndMarkers(importXml, tagName)
---[[
-		local idTable = Utils.splitString("," , getXMLString(importXml, "AutoDrive.waypoints.id"));
-		local xTable = Utils.splitString("," , getXMLString(importXml, "AutoDrive.waypoints.x"));
-		local yTable = Utils.splitString("," , getXMLString(importXml, "AutoDrive.waypoints.y"));
-		local zTable = Utils.splitString("," , getXMLString(importXml, "AutoDrive.waypoints.z"));
 
-		local outString = getXMLString(importXml, "AutoDrive.waypoints.out");
-		local outTable = Utils.splitString(";" , outString);
-		local outSplitted = {};
-		for i, outer in pairs(outTable) do
-			local out = Utils.splitString("," , outer);
-			outSplitted[i] = out;
-		end;
-
-		local incomingString = getXMLString(importXml, "AutoDrive.waypoints.incoming");
-		local incomingTable = Utils.splitString(";" , incomingString);
-		local incomingSplitted = {};
-		for i, outer in pairs(incomingTable) do
-			local incoming = Utils.splitString("," , outer);
-			incomingSplitted[i] = incoming;
-		end;
-
-		local out_costString = getXMLString(importXml, "AutoDrive.waypoints.out_cost");
-		local out_costTable = Utils.splitString(";" , out_costString);
-		local out_costSplitted = {};
-		for i, outer in pairs(out_costTable) do
-			local out_cost = Utils.splitString("," , outer);
-			out_costSplitted[i] = out_cost;
-		end;
-
-		local markerIDString = getXMLString(importXml, "AutoDrive.waypoints.markerID");
-		local markerIDTable = Utils.splitString(";" , markerIDString);
-		local markerIDSplitted = {};
-		for i, outer in pairs(markerIDTable) do
-			local markerID = Utils.splitString("," , outer);
-			markerIDSplitted[i] = markerID;
-		end;
-
-		local markerNamesString = getXMLString(importXml, "AutoDrive.waypoints.markerNames");
-		local markerNamesTable = Utils.splitString(";" , markerNamesString);
-		local markerNamesSplitted = {};
-		for i, outer in pairs(markerNamesTable) do
-			local markerNames = Utils.splitString("," , outer);
-			markerNamesSplitted[i] = markerNames;
-		end;
-
-		local wp_counter = 0;
-		g_currentMission.AutoDrive.mapWayPoints = {};
-		for i, id in pairs(idTable) do
-			if id ~= "" then
-				wp_counter = wp_counter +1;
-				local wp = {};
-				wp["id"] = tonumber(id);
-				wp["out"] = {};
-				for i2,outString in pairs(outSplitted[i]) do
-					wp["out"][i2] = tonumber(outString);
-				end;
-
-				wp["incoming"] = {};
-				local incoming_counter = 1;
-				for i2, incomingID in pairs(incomingSplitted[i]) do
-					if incomingID ~= "" then
-						wp["incoming"][incoming_counter] = tonumber(incomingID);
-					end;
-					incoming_counter = incoming_counter +1;
-				end;
-
-				wp["out_cost"] = {};
-				for i2,out_costString in pairs(out_costSplitted[i]) do
-					wp["out_cost"][i2] = tonumber(out_costString);
-				end;
-
-				wp["marker"] = {};
-				for i2, markerName in pairs(markerNamesSplitted[i]) do
-					if markerName ~= "" then
-						wp.marker[markerName] = tonumber(markerIDSplitted[i][i2]);
-					end;
-				end;
-				wp.x = tonumber(xTable[i]);
-				wp.y = tonumber(yTable[i]);
-				wp.z = tonumber(zTable[i]);
-
-				g_currentMission.AutoDrive.mapWayPoints[wp_counter] = wp;
-			end;
-
-		end;
-
-		if g_currentMission.AutoDrive.mapWayPoints[wp_counter] ~= nil then
-			print("AD: Loaded Waypoints: " .. wp_counter);
-			g_currentMission.AutoDrive.mapWayPointsCounter = wp_counter;
-			g_currentMission.AutoDrive.mapMarker = {};
-		else
-			g_currentMission.AutoDrive.mapWayPointsCounter = 0;
-		end;
-
-		local mapMarker = {};
-		local mapMarkerCounter = 1;
-		mapMarker.name = getXMLString(importXml,"AutoDrive.mapmarker.mm"..mapMarkerCounter..".name");
-
-		while mapMarker.name ~= nil do
-			--print("Loading map marker: " .. mapMarker.name);
-			mapMarker.id = getXMLFloat(importXml,"AutoDrive.mapmarker.mm"..mapMarkerCounter..".id");
-
-			local node = createTransformGroup(mapMarker.name);
-			setTranslation(node, g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].x, g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].y + 4 ,	g_currentMission.AutoDrive.mapWayPoints[mapMarker.id].z  );
-			mapMarker.node = node;
-
-			g_currentMission.AutoDrive.mapMarker[mapMarkerCounter] = mapMarker;
-			mapMarker = nil;
-			mapMarker = {};
-			mapMarkerCounter = mapMarkerCounter + 1;
-			g_currentMission.AutoDrive.mapMarkerCounter = g_currentMission.AutoDrive.mapMarkerCounter + 1;
-			mapMarker.name = getXMLString(importXml,"AutoDrive.mapmarker.mm"..mapMarkerCounter..".name");
-		end;
---]]
 		AutoDrive.config_changed = true;
-
 	else
 		print("AD: Import File does not exist: " .. importFile);
 	end;
-
 end
 
 addModEventListener(AutoDrive);

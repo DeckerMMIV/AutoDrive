@@ -2634,81 +2634,86 @@ end;
 function AutoDrive:draw()
 
 	if self.moduleInitialized == true then
-		if self.nCurrentWayPoint > 0 then
-			if self.ad.wayPoints[self.nCurrentWayPoint+1] ~= nil then
-				--print("drawing debug line");
-				drawDebugLine(self.ad.wayPoints[self.nCurrentWayPoint].x, self.ad.wayPoints[self.nCurrentWayPoint].y+4, self.ad.wayPoints[self.nCurrentWayPoint	.z, 0,1,1, self.ad.wayPoints[self.nCurrentWayPoint+1].x, self.ad.wayPoints[self.nCurrentWayPoint+1].y+4, self.ad.wayPoints[self.nCurrentWayPoit	+1].z, 1,1,1);
-			end;
-			if self.ad.wayPoints[self.nCurrentWayPoint-1] ~= nil then
-				drawDebugLine(self.ad.wayPoints[self.nCurrentWayPoint-1].x, self.ad.wayPoints[self.nCurrentWayPoint-1].y+4, self.ad.wayPoint	[self.nCurrentWayPoint-1].z, 0,1,1, self.ad.wayPoints[self.nCurrentWayPoint].x, self.ad.wayPoints[self.nCurrentWayPoint].y+4, self.ad.wayPoins	[self.nCurrentWayPoint].z, 1,1,1);
+		local wayPoints = self.ad.wayPoints
 
+		if self.nCurrentWayPoint > 0 then
+			local wp1 = wayPoints[self.nCurrentWayPoint]
+			local wp2 = wayPoints[self.nCurrentWayPoint+1]
+			if wp2 ~= nil then
+				drawDebugLine(wp1.x, wp1.y+4, wp1.z, 0,1,1, wp2.x, wp2.y+4, wp2.z, 1,1,1);
+			end;
+			local wp0 = wayPoints[self.nCurrentWayPoint-1]
+			if wp0 ~= nil then
+				drawDebugLine(wp0.x, wp0.y+4, wp0.z, 0,1,1, wp1.x, wp1.y+4, wp1.z, 1,1,1);
 			end;
 		end;
+
 		if self.bcreateMode == true then
-			local _drawCounter = 1;
-			for n in pairs(self.ad.wayPoints) do
-				if self.ad.wayPoints[n+1] ~= nil then
-					drawDebugLine(self.ad.wayPoints[n].x, self.ad.wayPoints[n].y+4, self.ad.wayPoints[n].z, 0,1,1, self.ad.wayPoints[n+1].x, self.ad.wayPoints[	+1].y+4, self.ad.wayPoints[n+1].z, 1,1,1);
+			for i, wp1 in pairs(wayPoints) do
+				local wp2 = wayPoints[i+1]
+				if wp2 ~= nil then
+					drawDebugLine(wp1.x, wp1.y+4, wp1.z, 0,1,1, wp2.x, wp2.y+4, wp2.z, 1,1,1);
 				else
-					drawDebugLine(self.ad.wayPoints[n].x, self.ad.wayPoints[n].y+4, self.ad.wayPoints[n].z, 0,1,1, self.ad.wayPoints[n].x, self.ad.wayPoints[n	.y+5, self.ad.wayPoints[n].z, 1,1,1);
+					drawDebugLine(wp1.x, wp1.y+4, wp1.z, 0,1,1, wp1.x, wp1.y+7, wp1.z, 1,1,1);
 				end;
 			end;
 		end;
 
 		if self.bCreateMapPoints == true then
 			if self == g_currentMission.controlledVehicle then
+				local mapWayPoints = g_currentMission.AutoDrive.mapWayPoints
+				local x1,y1,z1 = getWorldTranslation(self.components[1].node);
 				for i,point in pairs(g_currentMission.AutoDrive.mapWayPoints) do
-					local x1,y1,z1 = getWorldTranslation(self.components[1].node);
-					local distance = getDistance(point.x,point.z,x1,z1);
-					if distance < 50 then
-
-						if point.out ~= nil then
+					if point.out ~= nil then
+						local distance = getDistance(point.x,point.z, x1,z1);
+						if distance < 50 then
 							for i2,neighbor in pairs(point.out) do
 								local testDual = false;
 								for _,incoming in pairs(point.incoming) do
 									if incoming == neighbor then
 										testDual = true;
+										break
 									end;
 								end;
+								local neighbor = mapWayPoints[neighbor]
 								if testDual == true then
-									drawDebugLine(point.x, point.y+4, point.z, 1,0,0, g_currentMission.AutoDrive.mapWayPoints[neighbor].x,	g_currentMission.AutoDrive.mapWayPoints[neighbor].y+4, g_currentMission.AutoDrive.mapWayPoints[neighbor].z, 1,0,0);
+									drawDebugLine(point.x, point.y+4, point.z, 1,0,0, neighbor.x, neighbor.y+4, neighbor.z, 1,0,0);
 								else
-									drawDebugLine(point.x, point.y+4, point.z, 0,1,0, g_currentMission.AutoDrive.mapWayPoints[neighbor].x,	g_currentMission.AutoDrive.mapWayPoints[neighbor].y+4, g_currentMission.AutoDrive.mapWayPoints[neighbor].z, 1,1,1);
+									drawDebugLine(point.x, point.y+4, point.z, 0,1,0, neighbor.x, neighbor.y+4, neighbor.z, 1,1,1);
 								end;
-
-
 							end;
 						end;
 
 					end;
 				end;
 
+				--local x1,y1,z1 = getWorldTranslation(self.components[1].node);
 				for markerID,marker in pairs(g_currentMission.AutoDrive.mapMarker) do
-					local x1,y1,z1 = getWorldTranslation(self.components[1].node);
 					local x2,y2,z2 = getWorldTranslation(marker.node);
-					local distance = getDistance(x2,z2,x1,z1);
+					local distance = getDistance(x2,z2, x1,z1);
 					if distance < 50 then
-						DebugUtil.drawDebugNode(marker.node,marker.name);
+						DebugUtil.drawDebugNode(marker.node, marker.name);
 					end;
 				end;
 
-				if self.bShowDebugMapMarker == true and g_currentMission.AutoDrive.mapWayPoints[1] ~= nil then
+				--local x1,y1,z1 = getWorldTranslation(self.components[1].node);
+				if self.bShowDebugMapMarker == true and mapWayPoints[1] ~= nil then
 					local closest = AutoDrive:findClosestWayPoint(self);
-					local x1,y1,z1 = getWorldTranslation(self.components[1].node);
-					drawDebugLine(x1, y1, z1, 0,0,1, g_currentMission.AutoDrive.mapWayPoints[closest].x, g_currentMission.AutoDrive.mapWayPoints[closest].y+4,	g_currentMission.AutoDrive.mapWayPoints[closest].z, 0,0,1);
+					local wp = g_currentMission.AutoDrive.mapWayPoints[closest]
+					drawDebugLine(x1, y1, z1, 0,0,1, wp.x, wp.y+4, wp.z, 0,0,1);
 
-					if self.printMessage == nil or string.find(self.printMessage, g_i18n:getText("AD_Debug_closest")) ~= nil then
-						--self.printMessage = g_i18n:getText("AD_Debug_closest") .. closest;
-						--self.nPrintTime = 6000;
-					end;
+					--if self.printMessage == nil or string.find(self.printMessage, g_i18n:getText("AD_Debug_closest")) ~= nil then
+					--	--self.printMessage = g_i18n:getText("AD_Debug_closest") .. closest;
+					--	--self.nPrintTime = 6000;
+					--end;
 
 					if self.bCreateMapMarker == true and self.bEnteringMapMarker == false then
-
 						g_currentMission.AutoDrive.mapMarkerCounter = g_currentMission.AutoDrive.mapMarkerCounter + 1;
-						local node = createTransformGroup(self.sEnteredMapMarkerString);
-						setTranslation(node, g_currentMission.AutoDrive.mapWayPoints[closest].x, g_currentMission.AutoDrive.mapWayPoints[closest].y + 4 ,	g_currentMission.AutoDrive.mapWayPoints[closest].z  );
 
-						g_currentMission.AutoDrive.mapMarker[g_currentMission.AutoDrive.mapMarkerCounter] = {id=closest, name= self.sEnteredMapMarkerString,	node=node};
+						local node = createTransformGroup(self.sEnteredMapMarkerString);
+						setTranslation(node, wp.x, wp.y + 4 , wp.z);
+
+						g_currentMission.AutoDrive.mapMarker[g_currentMission.AutoDrive.mapMarkerCounter] = {id=closest, name=self.sEnteredMapMarkerString, node=node};
 						self.bCreateMapMarker = false;
 						--self.printMessage = g_i18n:getText("AD_Debug_waypoint_created_1") .. closest .. g_i18n:getText("AD_Debug_waypoint_created_2");
 						--self.nPrintTime = 30000;
@@ -2716,52 +2721,46 @@ function AutoDrive:draw()
 						g_currentMission.isPlayerFrozen = false;
 						self.isBroken = false;
 						--g_currentMission.controlPlayer = true;
-
-
 					end;
-
-
-
 
 					if self.bShowSelectedDebugPoint == true then
 						if self.DebugPointsIterated[self.nSelectedDebugPoint] ~= nil then
-
-							drawDebugLine(x1, y1, z1, 1,1,1, self.DebugPointsIterated[self.nSelectedDebugPoint].x, self.DebugPointsIterate	[self.nSelectedDebugPoint].y+4, self.DebugPointsIterated[self.nSelectedDebugPoint].z, 1,1,1);
+							local dp = self.DebugPointsIterated[self.nSelectedDebugPoint]
+							drawDebugLine(x1, y1, z1, 1,1,1, dp.x, dp.y+4, dp.z, 1,1,1);
 						else
 							self.nSelectedDebugPoint = 1;
 						end;
 
 						if self.bChangeSelectedDebugPoint == true then
-
 							local out_counter = 1;
 							local exists = false;
-							for i in pairs(g_currentMission.AutoDrive.mapWayPoints[closest].out) do
+							for i in pairs(mapWayPoints[closest].out) do
 								if exists == true then
 									--print ("Entry exists "..i.. " out_counter: "..out_counter);
-									g_currentMission.AutoDrive.mapWayPoints[closest].out[out_counter] = g_currentMission.AutoDrive.mapWayPoints[closest].out[i];
-									g_currentMission.AutoDrive.mapWayPoints[closest].out_cost[out_counter] = g_currentMission.AutoDrive.mapWayPoints[closest	.out_cost[i];
+									mapWayPoints[closest].out[out_counter]      = mapWayPoints[closest].out[i];
+									mapWayPoints[closest].out_cost[out_counter] = mapWayPoints[closest].out_cost[i];
 									out_counter = out_counter +1;
 								else
-									if g_currentMission.AutoDrive.mapWayPoints[closest].out[i] == self.DebugPointsIterated[self.nSelectedDebugPoint].id then
-
+									if mapWayPoints[closest].out[i] == self.DebugPointsIterated[self.nSelectedDebugPoint].id then
 										AutoDrive:MarkChanged()
-										g_currentMission.AutoDrive.mapWayPoints[closest].out[i] = nil;
-										g_currentMission.AutoDrive.mapWayPoints[closest].out_cost[i] = nil;
+										mapWayPoints[closest].out[i] = nil;
+										mapWayPoints[closest].out_cost[i] = nil;
 
-										if g_currentMission.autoLoadedMap ~= nil and g_currentMission.AutoDrive.adXml ~= nil then
-											removeXMLProperty(g_currentMission.AutoDrive.adXml, "AutoDrive." .. g_currentMission.autoLoadedMap ..	".waypoints.wp".. closest ..".out" .. i) ;
-											removeXMLProperty(g_currentMission.AutoDrive.adXml, "AutoDrive." .. g_currentMission.autoLoadedMap ..	".waypoints.wp".. closest ..".out_cost" .. i) ;
-										end;
+										--if g_currentMission.autoLoadedMap ~= nil and g_currentMission.AutoDrive.adXml ~= nil then
+										--	removeXMLProperty(g_currentMission.AutoDrive.adXml, "AutoDrive." .. g_currentMission.autoLoadedMap ..	".waypoints.wp".. closest ..".out" .. i) ;
+										--	removeXMLProperty(g_currentMission.AutoDrive.adXml, "AutoDrive." .. g_currentMission.autoLoadedMap ..	".waypoints.wp".. closest ..".out_cost" .. i) ;
+										--end;
 
 										local incomingExists = false;
-										for _,i2 in pairs(g_currentMission.AutoDrive.mapWayPoints[self.nSelectedDebugPoint].incoming) do
+										local sdp = self.nSelectedDebugPoint
+										for j, i2 in pairs(mapWayPoints[sdp].incoming) do
 											if i2 == closest or incomingExists then
 												incomingExists = true;
-												if g_currentMission.AutoDrive.mapWayPoints[self.nSelectedDebugPoint].incoming[_ + 1] ~= nil then
-													g_currentMission.AutoDrive.mapWayPoints[self.nSelectedDebugPoint].incoming[_] =	g_currentMission.AutoDrive.mapWayPoints[self.nSelectedDebugPoint].incoming[_ + 1];
-													g_currentMission.AutoDrive.mapWayPoints[self.nSelectedDebugPoint].incoming[_ + 1] = nil;
+												if mapWayPoints[sdp].incoming[j + 1] ~= nil then
+													mapWayPoints[sdp].incoming[j] = mapWayPoints[sdp].incoming[j + 1];
+													mapWayPoints[sdp].incoming[j + 1] = nil;
 												else
-													g_currentMission.AutoDrive.mapWayPoints[self.nSelectedDebugPoint].incoming[_] = nil;
+													mapWayPoints[sdp].incoming[j] = nil;
 												end;
 											end;
 										end;
@@ -2774,21 +2773,19 @@ function AutoDrive:draw()
 							end;
 
 							if exists == false then
-								g_currentMission.AutoDrive.mapWayPoints[closest].out[out_counter] = self.DebugPointsIterated[self.nSelectedDebugPoint].id;
-								g_currentMission.AutoDrive.mapWayPoints[closest].out_cost[out_counter] = 1;
+								mapWayPoints[closest].out[out_counter] = self.DebugPointsIterated[self.nSelectedDebugPoint].id;
+								mapWayPoints[closest].out_cost[out_counter] = 1;
 
 								local incomingCounter = 1;
 								for _,id in pairs(self.DebugPointsIterated[self.nSelectedDebugPoint].incoming) do
 									incomingCounter = incomingCounter + 1;
 								end;
-								self.DebugPointsIterated[self.nSelectedDebugPoint].incoming[incomingCounter] = g_currentMission.AutoDrive.mapWayPoints[closest	.id;
+								self.DebugPointsIterated[self.nSelectedDebugPoint].incoming[incomingCounter] = mapWayPoints[closest].id;
 
 								AutoDrive:MarkChanged()
 							end;
 
-
 							self.bChangeSelectedDebugPoint = false;
-
 						end;
 
 						if self.bChangeSelectedDebugPointSelection == true then
@@ -2798,6 +2795,7 @@ function AutoDrive:draw()
 					end;
 				end;
 			end;
+
 			--Traffic collision debug drawing
 			--[[
 			if self.aiTrafficCollisionTrigger ~= nil then
@@ -2835,10 +2833,7 @@ function AutoDrive:draw()
 
 			end;
 			--]]
-
-
 		end;
-
 
 		if self == g_currentMission.controlledVehicle then
 
@@ -2848,170 +2843,152 @@ function AutoDrive:draw()
 				local adPosY = 0.975;
 				setTextColor(1,1,1,1);
 				renderText(adPosX, adPosY, adFontSize, AutoDrive.printMessage);
-				--self.printMessage = nil;
-			end;
-
-			if self.printMessage ~= nil and AutoDrive.printMessage == nil then
+			elseif self.printMessage ~= nil then
 				local adFontSize = 0.014;
 				local adPosX = 0.03 + g_currentMission.helpBoxWidth
 				local adPosY = 0.975;
 				setTextColor(1,1,1,1);
 				renderText(adPosX, adPosY, adFontSize, self.printMessage);
-				--self.printMessage = nil;
 			end;
 		end;
 
 		if AutoDrive.Hud ~= nil then
-			if AutoDrive.Hud.showHud == true then
-				AutoDrive:drawHud(self);
-			end;
+			AutoDrive:drawHud(self);
 		end;
 	end;
 end;
 
 function AutoDrive:drawHud(vehicle)
+	if vehicle ~= g_currentMission.controlledVehicle
+	or false == AutoDrive.Hud.showHud
+	then
+		return
+	end
 
-	if vehicle == g_currentMission.controlledVehicle then
-		AutoDrive:updateButtons(vehicle);
-		--[[
-		local posX = 0.82;
-		local posY = 0.15;
-		local width = 0.16;
-		local height = 0.10;
-		local borderX = 0.008;
-		local borderY = 0.005;
+	AutoDrive:updateButtons(vehicle);
 
-		local buttonWidth = 0.015;
-		local buttonHeight = 0.02;
-		--]]
-		local ovWidth = AutoDrive.Hud.Background.width;
-		local ovHeight = AutoDrive.Hud.Background.height;
+	local ovWidth = AutoDrive.Hud.Background.width;
+	local ovHeight = AutoDrive.Hud.Background.height;
 
-		if vehicle.bEnteringMapMarker == true then
-			ovHeight = ovHeight + 0.07;
+	if vehicle.bEnteringMapMarker == true then
+		ovHeight = ovHeight + 0.07;
+	end;
+	if vehicle.bUnloadAtTrigger == true then
+		--ovHeight = ovHeight + 0.015;
+	end;
+
+	local buttonCounter = 0;
+	for _,button in pairs(AutoDrive.Hud.Buttons) do
+		buttonCounter = buttonCounter + 1;
+		if button.isVisible then
+			AutoDrive.Hud.rowCurrent = math.ceil(buttonCounter / AutoDrive.Hud.cols);
 		end;
-		if vehicle.bUnloadAtTrigger == true then
-			--ovHeight = ovHeight + 0.015;
+	end;
+	ovHeight = ovHeight + (AutoDrive.Hud.rowCurrent-2) * 0.05;
+
+	AutoDrive.Hud.Background.ov = Overlay:new(nil, AutoDrive.Hud.Background.img, AutoDrive.Hud.Background.posX, AutoDrive.Hud.Background.posY , ovWidth,	ovHeight);
+
+	AutoDrive.Hud.Background.Header.posY = AutoDrive.Hud.posY + ovHeight - AutoDrive.Hud.Background.Header.height;
+	AutoDrive.Hud.Background.Header.ov = Overlay:new(nil, AutoDrive.Hud.Background.Header.img, AutoDrive.Hud.Background.Header.posX,	AutoDrive.Hud.Background.Header.posY , AutoDrive.Hud.Background.Header.width, AutoDrive.Hud.Background.Header.height);
+
+	AutoDrive.Hud.Background.close_small.posY = AutoDrive.Hud.posY + ovHeight - 0.0101* (g_screenWidth / g_screenHeight);
+	AutoDrive.Hud.Background.close_small.ov = Overlay:new(nil, AutoDrive.Hud.Background.close_small.img, AutoDrive.Hud.Background.close_small.posX,	AutoDrive.Hud.Background.close_small.posY , AutoDrive.Hud.Background.close_small.width, AutoDrive.Hud.Background.close_small.height);
+
+	AutoDrive.Hud.Background.ov:render();
+	AutoDrive.Hud.Background.destination.ov:render();
+	AutoDrive.Hud.Background.Header.ov:render();
+	AutoDrive.Hud.Background.speedmeter.ov:render();
+	AutoDrive.Hud.Background.divider.ov:render();
+	AutoDrive.Hud.Background.close_small.ov:render();
+	AutoDrive.Hud.Background.unloadOverlay.ov:render();
+
+	for _,button in pairs(AutoDrive.Hud.Buttons) do
+		if button.isVisible then
+			button.ov:render();
 		end;
+	end;
 
-		local buttonCounter = 0;
-		for _,button in pairs(AutoDrive.Hud.Buttons) do
-			buttonCounter = buttonCounter + 1;
-			if button.isVisible then
-				AutoDrive.Hud.rowCurrent = math.ceil(buttonCounter / AutoDrive.Hud.cols);
-			end;
+	if true then
+		local adFontSize = 0.009;
+		local adPosX = AutoDrive.Hud.posX + AutoDrive.Hud.borderX; --0.03 + g_currentMission.helpBoxWidth
+		local adPosY = AutoDrive.Hud.posY + ovHeight - adFontSize - 0.002; --+ 0.003; --0.975;
+
+		setTextColor(1,1,1,1);
+		renderText(adPosX, adPosY, adFontSize,"AutoDrive");
+		if vehicle.ad.sToolTip ~= "" and vehicle.ad.nToolTipWait <= 0 then
+			renderText(adPosX + 0.03, adPosY, adFontSize," - " .. vehicle.ad.sToolTip);
 		end;
-		ovHeight = ovHeight + (AutoDrive.Hud.rowCurrent-2) * 0.05;
+	end;
 
+	if vehicle.sTargetSelected ~= nil then
+		local adFontSize = 0.013;
+		local adPosX = AutoDrive.Hud.posX + AutoDrive.Hud.Background.destination.width; -- + AutoDrive.Hud.borderX; --0.03 + g_currentMission.helpBoxWidth
+		local adPosY = AutoDrive.Hud.posY + 0.04 + (AutoDrive.Hud.borderY + AutoDrive.Hud.buttonHeight) * AutoDrive.Hud.rowCurrent; --+ 0.003; --0.975;
 
-
-
-		AutoDrive.Hud.Background.ov = Overlay:new(nil, AutoDrive.Hud.Background.img, AutoDrive.Hud.Background.posX, AutoDrive.Hud.Background.posY , ovWidth,	ovHeight);
-		AutoDrive.Hud.Background.Header.posY = AutoDrive.Hud.posY + ovHeight - AutoDrive.Hud.Background.Header.height;
-		AutoDrive.Hud.Background.Header.ov = Overlay:new(nil, AutoDrive.Hud.Background.Header.img, AutoDrive.Hud.Background.Header.posX,	AutoDrive.Hud.Background.Header.posY , AutoDrive.Hud.Background.Header.width, AutoDrive.Hud.Background.Header.height);
-		AutoDrive.Hud.Background.close_small.posY = AutoDrive.Hud.posY + ovHeight - 0.0101* (g_screenWidth / g_screenHeight);
-		AutoDrive.Hud.Background.close_small.ov = Overlay:new(nil, AutoDrive.Hud.Background.close_small.img, AutoDrive.Hud.Background.close_small.posX,	AutoDrive.Hud.Background.close_small.posY , AutoDrive.Hud.Background.close_small.width, AutoDrive.Hud.Background.close_small.height);
-		AutoDrive.Hud.Background.ov:render();
-		AutoDrive.Hud.Background.destination.ov:render();
-		AutoDrive.Hud.Background.Header.ov:render();
-		AutoDrive.Hud.Background.speedmeter.ov:render();
-		AutoDrive.Hud.Background.divider.ov:render();
-		AutoDrive.Hud.Background.close_small.ov:render();
-		AutoDrive.Hud.Background.unloadOverlay.ov:render();
-
-
-		for _,button in pairs(AutoDrive.Hud.Buttons) do
-			if button.isVisible then
-				button.ov:render();
-			end;
-		end;
-
-		if true then
-			local adFontSize = 0.009;
-			local adPosX = AutoDrive.Hud.posX + AutoDrive.Hud.borderX; --0.03 + g_currentMission.helpBoxWidth
-			local adPosY = AutoDrive.Hud.posY + ovHeight - adFontSize - 0.002; --+ 0.003; --0.975;
-
-			setTextColor(1,1,1,1);
-			renderText(adPosX, adPosY, adFontSize,"AutoDrive");
-			if vehicle.ad.sToolTip ~= "" and vehicle.ad.nToolTipWait <= 0 then
-				renderText(adPosX + 0.03, adPosY, adFontSize," - " .. vehicle.ad.sToolTip);
-			end;
-		end;
-
-		if vehicle.sTargetSelected ~= nil then
-			local adFontSize = 0.013;
-			local adPosX = AutoDrive.Hud.posX + AutoDrive.Hud.Background.destination.width; -- + AutoDrive.Hud.borderX; --0.03 + g_currentMission.helpBoxWidth
-			local adPosY = AutoDrive.Hud.posY + 0.04 + (AutoDrive.Hud.borderY + AutoDrive.Hud.buttonHeight) * AutoDrive.Hud.rowCurrent; --+ 0.003; --0.975;
-
-			if vehicle.bChoosingDestination == true then
-				if vehicle.sChosenDestination ~= "" then
-					setTextColor(1,1,1,1);
-					renderText(adPosX, adPosY, adFontSize, vehicle.sTargetSelected);
-				end;
-				if vehicle.sEnteredChosenDestination ~= "" then
-					setTextColor(1,0,0,1);
-					renderText(adPosX, adPosY, adFontSize,  vehicle.sEnteredChosenDestination);
-				end;
-			else
+		if vehicle.bChoosingDestination == true then
+			if vehicle.sChosenDestination ~= "" then
 				setTextColor(1,1,1,1);
 				renderText(adPosX, adPosY, adFontSize, vehicle.sTargetSelected);
 			end;
+			if vehicle.sEnteredChosenDestination ~= "" then
+				setTextColor(1,0,0,1);
+				renderText(adPosX, adPosY, adFontSize,  vehicle.sEnteredChosenDestination);
+			end;
+		else
 			setTextColor(1,1,1,1);
-			renderText(AutoDrive.Hud.posX - 0.012 + AutoDrive.Hud.width, adPosY, adFontSize, "" .. vehicle.nSpeed);
-
-			--[[
-			local img1 = Utils.getNoNil("img/createMapMarker.dds", "empty.dds" )
-			local state, result = pcall( Utils.getFilename, img1, AutoDrive.directory )
-			if not state then
-				print("ERROR: "..tostring(result).." (img1: "..tostring(img1)..")")
-				return
-			end
-			local target_ov = Overlay:new(nil, result, adPosX, adPosY , 0.01, 0.01* (g_screenWidth / g_screenHeight));
-			target_ov:render();
-			--]]
+			renderText(adPosX, adPosY, adFontSize, vehicle.sTargetSelected);
 		end;
+		setTextColor(1,1,1,1);
+		renderText(AutoDrive.Hud.posX - 0.012 + AutoDrive.Hud.width, adPosY, adFontSize, "" .. vehicle.nSpeed);
 
-		if vehicle.bEnteringMapMarker == true then
-			local adFontSize = 0.012;
-			local adPosX = AutoDrive.Hud.posX + AutoDrive.Hud.borderX; --0.03 + g_currentMission.helpBoxWidth
-			local adPosY = AutoDrive.Hud.posY + 0.085 + (AutoDrive.Hud.borderY + AutoDrive.Hud.buttonHeight) * AutoDrive.Hud.rowCurrent; --+ 0.003; --0.975;
-			setTextColor(1,1,1,1);
-			renderText(adPosX, adPosY + 0.02, adFontSize, g_i18n:getText("AD_new_marker_helptext"));
-			renderText(adPosX, adPosY, adFontSize, g_i18n:getText("AD_new_marker") .. " " .. vehicle.sEnteredMapMarkerString);
-		end;
+		--[[
+		local img1 = Utils.getNoNil("img/createMapMarker.dds", "empty.dds" )
+		local state, result = pcall( Utils.getFilename, img1, AutoDrive.directory )
+		if not state then
+			print("ERROR: "..tostring(result).." (img1: "..tostring(img1)..")")
+			return
+		end
+		local target_ov = Overlay:new(nil, result, adPosX, adPosY , 0.01, 0.01* (g_screenWidth / g_screenHeight));
+		target_ov:render();
+		--]]
+	end;
 
-		if vehicle.bUnloadAtTrigger == true then
-			local adFontSize = 0.013;
-			local adPosX = AutoDrive.Hud.posX + AutoDrive.Hud.Background.destination.width; --0.03 + g_currentMission.helpBoxWidth
-			local adPosY = AutoDrive.Hud.posY + 0.008 + (AutoDrive.Hud.borderY + AutoDrive.Hud.buttonHeight) * AutoDrive.Hud.rowCurrent; --+ 0.003; --0.975;
-			setTextColor(1,1,1,1);
+	if vehicle.bEnteringMapMarker == true then
+		local adFontSize = 0.012;
+		local adPosX = AutoDrive.Hud.posX + AutoDrive.Hud.borderX; --0.03 + g_currentMission.helpBoxWidth
+		local adPosY = AutoDrive.Hud.posY + 0.085 + (AutoDrive.Hud.borderY + AutoDrive.Hud.buttonHeight) * AutoDrive.Hud.rowCurrent; --+ 0.003; --0.975;
+		setTextColor(1,1,1,1);
+		renderText(adPosX, adPosY + 0.02, adFontSize, g_i18n:getText("AD_new_marker_helptext"));
+		renderText(adPosX, adPosY, adFontSize, g_i18n:getText("AD_new_marker") .. " " .. vehicle.sEnteredMapMarkerString);
+	end;
 
-			AutoDrive.Hud.Background.unloadOverlay.ov:render();
-			renderText(adPosX, adPosY, adFontSize, vehicle.sTargetSelected_Unload); --g_i18n:getText("AD_intermediate") ..
-		end;
+	if vehicle.bUnloadAtTrigger == true then
+		local adFontSize = 0.013;
+		local adPosX = AutoDrive.Hud.posX + AutoDrive.Hud.Background.destination.width; --0.03 + g_currentMission.helpBoxWidth
+		local adPosY = AutoDrive.Hud.posY + 0.008 + (AutoDrive.Hud.borderY + AutoDrive.Hud.buttonHeight) * AutoDrive.Hud.rowCurrent; --+ 0.003; --0.975;
+		setTextColor(1,1,1,1);
 
-
-		end;
-
+		AutoDrive.Hud.Background.unloadOverlay.ov:render();
+		renderText(adPosX, adPosY, adFontSize, vehicle.sTargetSelected_Unload); --g_i18n:getText("AD_intermediate") ..
+	end;
 end;
 
 function AutoDrive:removeMapWayPoint(del)
 		AutoDrive:MarkChanged();
 
 		--remove node on all out going nodes
-		for _,node in pairs(del.out) do
-			local IncomingCounter = 1;
+		for _, node in pairs(del.out) do
+			local mapWaypointNode = g_currentMission.AutoDrive.mapWayPoints[node]
 			local deleted = false;
-			for __,incoming in pairs(g_currentMission.AutoDrive.mapWayPoints[node].incoming) do
+			for j, incoming in pairs(mapWaypointNode.incoming) do
 				if incoming == del.id then
 					deleted = true
 				end
 				if deleted then
-					if g_currentMission.AutoDrive.mapWayPoints[node].incoming[__ + 1] ~= nil then
-						g_currentMission.AutoDrive.mapWayPoints[node].incoming[__] = g_currentMission.AutoDrive.mapWayPoints[node].incoming[__ + 1];
-						--g_currentMission.AutoDrive.mapWayPoints[node].incoming[__ + 1] = nil;
+					if mapWaypointNode.incoming[j + 1] ~= nil then
+						mapWaypointNode.incoming[j] = mapWaypointNode.incoming[j + 1];
 					else
-						g_currentMission.AutoDrive.mapWayPoints[node].incoming[__] = nil;
+						mapWaypointNode.incoming[j] = nil;
 					end;
 				end;
 
@@ -3019,64 +2996,57 @@ function AutoDrive:removeMapWayPoint(del)
 		end;
 
 		--remove node on all incoming nodes
-
-		for _,node in pairs(g_currentMission.AutoDrive.mapWayPoints) do
-
+		for _, node in pairs(g_currentMission.AutoDrive.mapWayPoints) do
 			local deleted = false;
-			for __,out_id in pairs(node.out) do
+			for j,out_id in pairs(node.out) do
 				if out_id == del.id then
 					deleted = true;
 				end;
-
-
 				if deleted then
-					if node.out[__ + 1 ] ~= nil then
-						node.out[__] = node.out[__+1];
-						node.out_cost[__] = node.out_cost[__+1];
+					if node.out[j + 1] ~= nil then
+						node.out[j] = node.out[j+1];
+						node.out_cost[j] = node.out_cost[j+1];
 					else
-						node.out[__] = nil;
-						node.out_cost[__] = nil;
+						node.out[j] = nil;
+						node.out_cost[j] = nil;
 					end;
 				end;
 			end;
-
 		end;
 
 		--adjust ids for all succesive nodes :(
-
 		local deleted = false;
-		for _,node in pairs(g_currentMission.AutoDrive.mapWayPoints) do
-			if _ > del.id then
+		for i, node in pairs(g_currentMission.AutoDrive.mapWayPoints) do
+			if i > del.id then
 				local oldID = node.id;
 				--adjust all possible references in nodes that have a connection with this node
-
-				for __,innerNode in pairs(g_currentMission.AutoDrive.mapWayPoints) do
-					for ___,innerNodeOutID in pairs(innerNode.out) do
+				for _, innerNode in pairs(g_currentMission.AutoDrive.mapWayPoints) do
+					for k, innerNodeOutID in pairs(innerNode.out) do
 						if innerNodeOutID == oldID then
-							innerNode.out[___] = oldID - 1;
+							innerNode.out[k] = oldID - 1;
 						end;
 					end;
 				end;
 
-				for __,outGoingID in pairs(node.out) do
-					for ___,innerNodeIncoming in pairs(g_currentMission.AutoDrive.mapWayPoints[outGoingID].incoming) do
+				for _, outGoingID in pairs(node.out) do
+					for k, innerNodeIncoming in pairs(g_currentMission.AutoDrive.mapWayPoints[outGoingID].incoming) do
 						if innerNodeIncoming == oldID then
-							g_currentMission.AutoDrive.mapWayPoints[outGoingID].incoming[___] = oldID - 1;
+							g_currentMission.AutoDrive.mapWayPoints[outGoingID].incoming[k] = oldID - 1;
 						end;
 					end;
 				end;
 
-				g_currentMission.AutoDrive.mapWayPoints[_ - 1] = node;
+				g_currentMission.AutoDrive.mapWayPoints[i - 1] = node;
 				node.id = node.id - 1;
 
-				if g_currentMission.AutoDrive.mapWayPoints[_ + 1] == nil then
+				if g_currentMission.AutoDrive.mapWayPoints[i + 1] == nil then
 					deleted = true;
-					g_currentMission.AutoDrive.mapWayPoints[_] = nil;
+					g_currentMission.AutoDrive.mapWayPoints[i] = nil;
 					g_currentMission.AutoDrive.mapWayPointsCounter = g_currentMission.AutoDrive.mapWayPointsCounter - 1;
 				end;
-
 			end;
 		end;
+
 		--must have been last added waypoint that got deleted. handle this here:
 		if deleted == false then
 			g_currentMission.AutoDrive.mapWayPoints[g_currentMission.AutoDrive.mapWayPointsCounter] = nil;
@@ -3085,76 +3055,73 @@ function AutoDrive:removeMapWayPoint(del)
 
 		--adjust all mapmarkers
 		local deletedMarker = false;
-		for _,marker in pairs(g_currentMission.AutoDrive.mapMarker) do
+		for i, marker in pairs(g_currentMission.AutoDrive.mapMarker) do
 			if marker.id == del.id then
 				deletedMarker = true;
 			end;
 			if deletedMarker then
-				if g_currentMission.AutoDrive.mapMarker[_+1] ~= nil then
-					g_currentMission.AutoDrive.mapMarker[_] =  g_currentMission.AutoDrive.mapMarker[_+1];
+				if g_currentMission.AutoDrive.mapMarker[i+1] ~= nil then
+					g_currentMission.AutoDrive.mapMarker[i] =  g_currentMission.AutoDrive.mapMarker[i+1];
 				else
-					g_currentMission.AutoDrive.mapMarker[_] = nil;
+					g_currentMission.AutoDrive.mapMarker[i] = nil;
 				end;
 			end;
 			if marker.id > del.id then
 				marker.id = marker.id -1;
 			end;
 		end;
-
 end;
 
 function AutoDrive:removeMapMarker(del)
 	--adjust all mapmarkers
 	local deletedMarker = false;
-	for _,marker in pairs(g_currentMission.AutoDrive.mapMarker) do
+	for i, marker in pairs(g_currentMission.AutoDrive.mapMarker) do
 		if marker.id == del.id then
 			deletedMarker = true;
 		end;
 		if deletedMarker then
-			if g_currentMission.AutoDrive.mapMarker[_+1] ~= nil then
-				g_currentMission.AutoDrive.mapMarker[_] =  g_currentMission.AutoDrive.mapMarker[_+1];
+			if g_currentMission.AutoDrive.mapMarker[i+1] ~= nil then
+				g_currentMission.AutoDrive.mapMarker[i] =  g_currentMission.AutoDrive.mapMarker[i+1];
 			else
-				g_currentMission.AutoDrive.mapMarker[_] = nil;
+				g_currentMission.AutoDrive.mapMarker[i] = nil;
 			end;
 		end;
 	end;
 	AutoDrive:MarkChanged()
 end
 
-function getFillType_new(fillType, implementTypeName)
-	local sFillType = g_i18n:getText("UNKNOWN");
+--function getFillType_new(fillType, implementTypeName)
+--	local sFillType = g_i18n:getText("UNKNOWN");
+--
+--	if FillUtil.fillTypeIndexToDesc[fillType] ~= nil then
+--		output1 =  FillUtil.fillTypeIndexToDesc[fillType].nameI18N
+--		if string.find(output1, "Missing") then
+--			sFillType = g_i18n:getText("UNKNOWN");
+--		else
+--			sFillType = output1;
+--		end;
+--	end;
+--
+--	return sFillType;
+--end;
 
-	if FillUtil.fillTypeIndexToDesc[fillType] ~= nil then
-		output1 =  FillUtil.fillTypeIndexToDesc[fillType].nameI18N
-		if string.find(output1, "Missing") then
-			sFillType = g_i18n:getText("UNKNOWN");
-		else
-			sFillType = output1;
-		end;
-	end;
+--function round(num, idp)
+--	if Utils.getNoNil(num, 0) > 0 then
+--		local mult = 10^(idp or 0);
+--		return math.floor(num * mult + 0.5) / mult;
+--	else
+--		return 0;
+--	end;
+--end;
 
-	return sFillType;
-end;
-
-function round(num, idp)
-	if Utils.getNoNil(num, 0) > 0 then
-		local mult = 10^(idp or 0);
-		return math.floor(num * mult + 0.5) / mult;
-	else
-		return 0;
-	end;
-end;
-
-function getPercentage(capacity, level)
-	return level / capacity * 100;
-end;
+--function getPercentage(capacity, level)
+--	return level / capacity * 100;
+--end;
 
 function AutoDrive:angleBetween(vec1, vec2)
-
 	local scalarproduct_top = vec1.x * vec2.x + vec1.z * vec2.z;
 	local scalarproduct_down = math.sqrt(vec1.x * vec1.x + vec1.z*vec1.z) * math.sqrt(vec2.x * vec2.x + vec2.z*vec2.z)
 	local scalarproduct = scalarproduct_top / scalarproduct_down;
-
 	return math.deg(math.acos(scalarproduct));
 end
 

@@ -133,12 +133,16 @@ function AutoDrive.writeWaypointsAndMarkers(adXml, tagName)
     end;
 
     local i = 0
-    for _, mm in pairs(g_currentMission.AutoDrive.mapMarker) do
-        local tagName2 = tagName .. (".mapmarkers.marker(%d)"):format(i)
-        i=i+1
-        setXMLInt(   adXml, tagName2 .. "#wpId", mm.id);
-        setXMLString(adXml, tagName2 .. "#name", mm.name);
+    for mapMarkerId, mm in pairs(g_currentMission.AutoDrive.mapMarker) do
+        local tagName2 = tagName .. (".mapmarkers.marker(%d)"):format(i); i=i+1
+        setXMLInt(   adXml, tagName2 .. "#id", mapMarkerId);
+        setXMLInt(   adXml, tagName2 .. "#waypoint", mm.id);
+        setXMLString(adXml, tagName2 .. ".name", mm.name);
     end;
+
+    --
+    removeXMLProperty(adXml, tagName .. ".mapmarker")
+    removeXMLProperty(adXml, tagName .. ".waypoints.markerNames")
 end
 
 function AutoDrive.readWaypointsAndMarkers(adXml, tagName)
@@ -147,15 +151,17 @@ function AutoDrive.readWaypointsAndMarkers(adXml, tagName)
     if hasXMLProperty(adXml, tagName..".mapmarkers.marker") then
         local i = 0
         while true do
-            local tagName2 = tagName .. (".mapmarkers.marker(%d)"):format(i)
-            i=i+1
+            local tagName2 = tagName .. (".mapmarkers.marker(%d)"):format(i); i=i+1
             local mapMarker = {}
-            mapMarker.id   = getXMLInt(   adXml, tagName2 .. "#wpId");
-            mapMarker.name = getXMLString(adXml, tagName2 .. "#name");
-            if mapMarker.id == nil or mapMarker.name == nil then
+            local mapMarkerId = getXMLInt(   adXml, tagName2 .. "#id");
+            mapMarker.id      = getXMLInt(   adXml, tagName2 .. "#waypoint");
+            mapMarker.name    = getXMLString(adXml, tagName2 .. ".name");
+            if mapMarkerId == nil or mapMarker.id == nil or mapMarker.name == nil then
                 break
             end
-            table.insert(g_currentMission.AutoDrive.mapMarker, mapMarker);
+            if mapMarkerId > 0 then
+                g_currentMission.AutoDrive.mapMarker[mapMarkerId] = mapMarker
+            end
         end
     else
         local tagName2 = tagName .. ".mapmarker"
@@ -182,7 +188,7 @@ function AutoDrive.readWaypointsAndMarkers(adXml, tagName)
 
     local function splitIntoArrays(wholeText)
         local splitted = {}
-        for i, part in pairs(Utils.splitString(";" , wholeText) do
+        for i, part in pairs(Utils.splitString(";" , wholeText)) do
             splitted[i] = Utils.splitString("," , part)
         end;
         return splitted
@@ -734,7 +740,7 @@ function AutoDrive:InputHandling(vehicle, input)
                 if input == "input_nextTarget" then
                     vehicle.nMapMarkerSelected = (vehicle.nMapMarkerSelected % ad.mapMarkerCounter) + 1
                 else
-                    vehicle.nMapMarkerSelected = ((vehicle.nMapMarkerSelected + ad.mapMarkerCounter-1) % ad.mapMarkerCounter) + 1
+                    vehicle.nMapMarkerSelected = ((vehicle.nMapMarkerSelected + ad.mapMarkerCounter-2) % ad.mapMarkerCounter) + 1
                 end
 
                 vehicle.ntargetSelected = ad.mapMarker[vehicle.nMapMarkerSelected].id;
@@ -939,7 +945,7 @@ function AutoDrive:InputHandling(vehicle, input)
                 if input == "input_nextTarget_Unload" then
                     vehicle.nMapMarkerSelected_Unload = (vehicle.nMapMarkerSelected_Unload % g_currentMission.AutoDrive.mapMarkerCounter) + 1
                 else
-                    vehicle.nMapMarkerSelected_Unload = ((vehicle.nMapMarkerSelected_Unload+g_currentMission.AutoDrive.mapMarkerCounter-1) % g_currentMission.AutoDrive.mapMarkerCounter) + 1
+                    vehicle.nMapMarkerSelected_Unload = ((vehicle.nMapMarkerSelected_Unload+g_currentMission.AutoDrive.mapMarkerCounter-2) % g_currentMission.AutoDrive.mapMarkerCounter) + 1
                 end
 
                 vehicle.ntargetSelected_Unload = g_currentMission.AutoDrive.mapMarker[vehicle.nMapMarkerSelected_Unload].id;
@@ -1332,31 +1338,6 @@ function init(self)
     self.trafficVehicle = nil;
 end;
 
---function AutoDrive:translate(text)
---
---	if text == "Hof" then
---		return g_i18n:getText("AD_Hof");
---	end;
---	if text == "Kuhstall" then
---		return g_i18n:getText("AD_Kuhstall");
---	end;
---	if text == "Schweinestall" then
---		return g_i18n:getText("AD_Schweinestall");
---	end;
---	if text == "Schafsweide" then
---		return g_i18n:getText("AD_Schafsweide");
---	end;
---	if text == "Tankstelle" then
---		return g_i18n:getText("AD_Tankstelle");
---	end;
---	if text == "Viehhandel" then
---		return g_i18n:getText("AD_Viehhandel");
---	end;
---
---	return text;
---
---end;
-
 function AutoDrive:newMouseEvent(superFunc, posX, posY, isDown, isUp, button)
     if g_currentMission.AutoDrive.showMouse then
         local x = InputBinding.mouseMovementX;
@@ -1371,7 +1352,7 @@ function AutoDrive:newMouseEvent(superFunc, posX, posY, isDown, isUp, button)
     end;
 end;
 
-function AutoDrive:mouseEvent(posX, posY, isDown, isUp, button)
+function AutoDrive:mouseEvent(posX, posY, isDown, isUp, btn)
     if self == g_currentMission.controlledVehicle
     and g_currentMission.AutoDrive.showMouse
     and AutoDrive.Hud.showHud == true
@@ -1391,7 +1372,7 @@ function AutoDrive:mouseEvent(posX, posY, isDown, isUp, button)
                 end;
                 buttonHovered = true;
 
-                if button == 1 and isDown then
+                if btn == 1 and isDown then
                     --print("Clicked button " .. button.name);
                     AutoDrive:InputHandling(self, button.name);
                 end
@@ -1402,16 +1383,7 @@ function AutoDrive:mouseEvent(posX, posY, isDown, isUp, button)
             self.ad.sToolTip = "";
         end;
 
-        if button == 1 and isDown then
---			for _,button in pairs(AutoDrive.Hud.Buttons) do
---
---				if posX > button.posX and posX < (button.posX + button.width) and posY > button.posY and posY < (button.posY + button.height) and	button.isVisible then
---					--print("Clicked button " .. button.name);
---					AutoDrive:InputHandling(self, button.name);
---				end;
---
---			end;
-
+        if btn == 1 and isDown then
             local button = AutoDrive.Hud.Background.close_small
             if  posX > (button.posX)
             and posX < (button.posX + button.width)
@@ -1419,24 +1391,10 @@ function AutoDrive:mouseEvent(posX, posY, isDown, isUp, button)
             and posY < (button.posY + button.height)
             then
                 AutoDrive:InputHandling(self, "input_toggleHud")
---				if AutoDrive.Hud.showHud == false then
---					AutoDrive.Hud.showHud = true;
---				else
---					AutoDrive.Hud.showHud = false;
---					if g_currentMission.AutoDrive.showMouse == false then
---						--g_mouseControlsHelp.active = false
---						g_currentMission.AutoDrive.showMouse = true;
---						InputBinding.setShowMouseCursor(true);
---					else
---						--g_mouseControlsHelp.active = true
---						InputBinding.setShowMouseCursor(false);
---						g_currentMission.AutoDrive.showMouse = false;
---					end;
---				end;
             end;
 
-            local adPosX = AutoDrive.Hud.posX + AutoDrive.Hud.Background.destination.width; -- + AutoDrive.Hud.borderX; --0.03 + g_currentMission.helpBoxWidth
-            local adPosY = AutoDrive.Hud.posY + 0.04 + (AutoDrive.Hud.borderY + AutoDrive.Hud.buttonHeight) * AutoDrive.Hud.rowCurrent; --+ 0.003; --0.975;
+            local adPosX = AutoDrive.Hud.posX + AutoDrive.Hud.Background.destination.width;
+            local adPosY = AutoDrive.Hud.posY + 0.04 + (AutoDrive.Hud.borderY + AutoDrive.Hud.buttonHeight) * AutoDrive.Hud.rowCurrent;
             local height = 0.015;
             local width = 0.05;
             if posX > (adPosX) and posX < (adPosX + width) and posY > (adPosY) and posY < (adPosY + height) then
@@ -1511,7 +1469,7 @@ function AutoDrive:keyEvent(unicode, sym, modifier, isDown)
                 end;
                 if behindCurrent == true and foundMatch == false then
                     for i, marker in pairs(g_currentMission.AutoDrive.mapMarker) do
-                        if string.find(marker.name, self.sEnteredChosenDestination) == 1 and then
+                        if string.find(marker.name, self.sEnteredChosenDestination) == 1 then
                             self.sChosenDestination = marker.name;
                             markerID = marker.id;
                             markerIndex = i;
@@ -1780,7 +1738,7 @@ function AutoDrive:update(dt)
             if self.bInitialized == false then
                 self.nTimeToDeadLock = 15000;
                 if self.bTargetMode == true then
-                    local closest = AutoDrive:findMatchingWayPoint(veh) --AutoDrive:findClosestWayPoint(veh);
+                    local closest = AutoDrive:findMatchingWayPoint(veh)
                     self.ad.wayPoints = AutoDrive:FastShortestPath(g_currentMission.AutoDrive.mapWayPoints, closest, g_currentMission.AutoDrive.mapMarker[self.nMapMarkerSelected].name, self.ntargetSelected);
                     if self.ad.wayPoints[2] ~= nil then
                         self.nCurrentWayPoint = 2;
@@ -2110,7 +2068,7 @@ function AutoDrive:update(dt)
                 local angle = AutoDrive:angleBetween( {x=x-wp_ref.x,z=z-wp_ref.z},{x=wp.x-wp_ref.x, z = wp.z - wp_ref.z } )
                 --print("Angle between: " .. angle );
                 local max_distance = 6;
-                if angle < 1 then max_distance = 20; end;
+                if angle < 1 then max_distance = 20;
                 elseif angle >= 1 and angle < 2 then max_distance = 12;
                 elseif angle >= 2 and angle < 3 then max_distance = 9;
                 elseif angle >= 3 and angle < 5 then max_distance = 6;
@@ -2471,18 +2429,18 @@ end;
 
 function AutoDrive:findClosestWayPoint(veh)
     --returns waypoint closest to vehicle position
-    local x1,_,z1 = getWorldTranslation(veh.components[1].node);
-    local closest = 1;
-    local dist = math.huge
-    for _, wp in pairs(g_currentMission.AutoDrive.mapWayPoints) do
-        local dis = getDistance(wp.x,wp.z, x1,z1);
-        if dis < dist then
-            closest = i;
-            dist = dis;
-        end;
+    local x1,_,z1 = getWorldTranslation(veh.components[1].node)
+    local closestWpId = 1
+    local closestDist = math.huge
+    for i, wp in pairs(g_currentMission.AutoDrive.mapWayPoints) do
+        local dist = getDistance(wp.x,wp.z, x1,z1)
+        if dist < closestDist then
+            closestWpId = i
+            closestDist = dist
+        end
     end
-    return closest;
-end;
+    return closestWpId
+end
 
 function AutoDrive:findMatchingWayPoint(veh)
     --returns waypoint closest to vehicle position and with the most suited heading
@@ -2593,7 +2551,7 @@ function AutoDrive:draw()
             if self == g_currentMission.controlledVehicle then
                 local mapWayPoints = g_currentMission.AutoDrive.mapWayPoints
                 local x1,y1,z1 = getWorldTranslation(self.components[1].node);
-                for i,point in pairs(g_currentMission.AutoDrive.mapWayPoints) do
+                for i,point in pairs(mapWayPoints) do
                     if point.out ~= nil then
                         local distance = getDistance(point.x,point.z, x1,z1);
                         if distance < 50 then
@@ -2629,7 +2587,7 @@ function AutoDrive:draw()
                 --local x1,y1,z1 = getWorldTranslation(self.components[1].node);
                 if self.bShowDebugMapMarker == true and mapWayPoints[1] ~= nil then
                     local closest = AutoDrive:findClosestWayPoint(self);
-                    local wp = g_currentMission.AutoDrive.mapWayPoints[closest]
+                    local wp = mapWayPoints[closest]
                     drawDebugLine(x1, y1, z1, 0,0,1, wp.x, wp.y+4, wp.z, 0,0,1);
 
                     --if self.printMessage == nil or string.find(self.printMessage, g_i18n:getText("AD_Debug_closest")) ~= nil then

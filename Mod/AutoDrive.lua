@@ -596,6 +596,20 @@ function AutoDrive:AddButton(name, img1, img2, toolTip, on, visible)
     AutoDrive.Hud.Buttons[AutoDrive.Hud.buttonCounter] = btn
 end;
 
+function AutoDrive:updateButtonImageOnOff(buttonName, useOnImage)
+    for _,button in pairs(AutoDrive.Hud.Buttons) do
+        if button.name == buttonName then
+            if useOnImage == true then
+                button.img_active = button.img_on
+            else
+                button.img_active = button.img_off
+            end
+            button.ov:setImage(button.img_active)
+            break
+        end
+    end
+end
+
 function AutoDrive:InputHandling(vehicle, input)
     vehicle.currentInput = input;
 
@@ -712,18 +726,7 @@ function AutoDrive:InputHandling(vehicle, input)
                 --AutoDrive:deactivate(vehicle,false);
             end;
 
-            for _,button in pairs(AutoDrive.Hud.Buttons) do
-                if button.name == "input_start_stop" then
-                    if vehicle.bActive == true then
-                        button.img_active = button.img_on;
-                    else
-                        button.img_active = button.img_off;
-                    end;
-                    --button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
-                    button.ov:setImage(button.img_active)
-                end;
-            end;
-
+            updateButtonImageOnOff("input_start_stop", vehicle.bActive)
         end;
 
         if input == "input_nextTarget"
@@ -754,18 +757,7 @@ function AutoDrive:InputHandling(vehicle, input)
         if input == "input_debug" then
             vehicle.bCreateMapPoints = not vehicle.bCreateMapPoints
 
-            for _,button in pairs(AutoDrive.Hud.Buttons) do
-                if button.name == "input_debug" then
-                    if vehicle.bCreateMapPoints == true then
-                        button.img_active = button.img_on;
-                    else
-                        button.img_active = button.img_off;
-                    end;
-                    --button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
-                    button.ov:setImage(button.img_active)
-                end;
-            end;
-
+            updateButtonImageOnOff("input_debug", vehicle.bCreateMapPoints)
         end;
 
         if input == "input_record" and g_server ~= nil and g_dedicatedServerInfo == nil then
@@ -799,6 +791,7 @@ function AutoDrive:InputHandling(vehicle, input)
                     end;
                     --button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
                     button.ov:setImage(button.img_active)
+                    break
                 end;
             end;
 
@@ -806,23 +799,12 @@ function AutoDrive:InputHandling(vehicle, input)
 
         if input == "input_showClosest" and g_server ~= nil and g_dedicatedServerInfo == nil then
             vehicle.bShowDebugMapMarker = not vehicle.bShowDebugMapMarker
-
-            for _,button in pairs(AutoDrive.Hud.Buttons) do
-                if button.name == "input_showClosest" then
-                    if vehicle.bShowDebugMapMarker == true then
-                        button.img_active = button.img_on;
-                    else
-                        button.img_active = button.img_off;
-                    end;
-                    --button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
-                    button.ov:setImage(button.img_active)
-                end;
-            end;
-
+            updateButtonImageOnOff("input_showClosest", vehicle.bShowDebugMapMarker)
         end;
 
         if input == "input_showNeighbor" and g_server ~= nil and g_dedicatedServerInfo == nil then
             vehicle.bShowSelectedDebugPoint = not vehicle.bShowSelectedDebugPoint
+
             if vehicle.bShowSelectedDebugPoint == true then
                 -- Locate the adjacent waypoints, within a certain radius of vehicle
                 local foundWithDistance = {}
@@ -843,18 +825,7 @@ function AutoDrive:InputHandling(vehicle, input)
                 vehicle.nSelectedDebugPoint = 1
             end
 
-            for _,button in pairs(AutoDrive.Hud.Buttons) do
-                if button.name == "input_showNeighbor" then
-                    if vehicle.bShowSelectedDebugPoint == true then
-                        button.img_active = button.img_on;
-                    else
-                        button.img_active = button.img_off;
-                    end;
-                    --button.ov = Overlay:new(nil, button.img_active,button.posX ,button.posY , AutoDrive.Hud.buttonWidth, AutoDrive.Hud.buttonHeight);
-                    button.ov:setImage(button.img_active)
-                end;
-            end;
-
+            updateButtonImageOnOff("input_showNeighbor", vehicle.bShowSelectedDebugPoint)
         end;
 
         if input == "input_toggleConnection" and g_server ~= nil and g_dedicatedServerInfo == nil then
@@ -900,23 +871,19 @@ function AutoDrive:InputHandling(vehicle, input)
         end
 
         if input == "input_removeWaypoint" and g_server ~= nil and g_dedicatedServerInfo == nil then
-
             if vehicle.bShowDebugMapMarker == true and g_currentMission.AutoDrive.mapWayPoints[1] ~= nil then
                 local closest = AutoDrive:findClosestWayPoint(vehicle)
                 print("removing waypoint with id: " .. closest);
                 AutoDrive:removeMapWayPoint( g_currentMission.AutoDrive.mapWayPoints[closest] );
             end;
-
         end;
 
         if input == "input_removeDestination" and g_server ~= nil and g_dedicatedServerInfo == nil then
-
             if vehicle.bShowDebugMapMarker == true and g_currentMission.AutoDrive.mapWayPoints[1] ~= nil then
                 local closest = AutoDrive:findClosestWayPoint(vehicle)
                 print("removing destination with node id: " .. closest);
                 AutoDrive:removeMapMarker( g_currentMission.AutoDrive.mapWayPoints[closest] );
             end;
-
         end;
 
         if input == "input_recalculate" and g_server ~= nil and g_dedicatedServerInfo == nil then
@@ -946,17 +913,18 @@ function AutoDrive:InputHandling(vehicle, input)
                 vehicle.sTargetSelected_Unload = g_currentMission.AutoDrive.mapMarker[vehicle.nMapMarkerSelected_Unload].name;
                 --vehicle.sTargetSelected_Unload = AutoDrive:translate(vehicle.sTargetSelected_Unload);
             end;
-
         end;
 
         if input == "input_continue" then
             vehicle.bPaused = not vehicle.bPaused
+            updateButtonImageOnOff("input_continue", vehicle.bPaused)
         end
 
         if input == "input_frontLoaderCam" then
             vehicle.ad.cam = not vehicle.ad.cam
         end
     end
+
     vehicle.currentInput = "";
 end;
 
@@ -2498,6 +2466,7 @@ function AutoDrive:draw()
         local wayPoints = self.ad.wayPoints
 
         if self.nCurrentWayPoint > 0 then
+            -- AutoDrive enabled
             local wp1 = wayPoints[self.nCurrentWayPoint]
             local wp2 = wayPoints[self.nCurrentWayPoint+1]
             if wp2 ~= nil then
@@ -2510,17 +2479,19 @@ function AutoDrive:draw()
         end;
 
         if self.bcreateMode == true then
+            -- Recording
             for i, wp1 in pairs(wayPoints) do
                 local wp2 = wayPoints[i+1]
                 if wp2 ~= nil then
                     drawDebugLine(wp1.x, wp1.y+4, wp1.z, 0,1,1, wp2.x, wp2.y+4, wp2.z, 1,1,1);
                 else
-                    drawDebugLine(wp1.x, wp1.y+4, wp1.z, 0,1,1, wp1.x, wp1.y+7, wp1.z, 1,1,1);
+                    drawDebugLine(wp1.x, wp1.y+4, wp1.z, 0,1,1, wp1.x, wp1.y+6, wp1.z, 1,1,1);
                 end;
             end;
         end;
 
         if self.bCreateMapPoints == true then
+            -- Debug mode (show all waypoints)
             if self == g_currentMission.controlledVehicle then
                 local mapWayPoints = g_currentMission.AutoDrive.mapWayPoints
                 local x1,y1,z1 = getWorldTranslation(self.components[1].node);
@@ -2544,7 +2515,6 @@ function AutoDrive:draw()
                                 end;
                             end;
                         end;
-
                     end;
                 end;
 
@@ -2697,7 +2667,6 @@ function AutoDrive:draw()
         end;
 
         if self == g_currentMission.controlledVehicle then
-
             if AutoDrive.printMessage ~= nil then
                 local adFontSize = 0.014;
                 local adPosX = 0.03 + g_currentMission.helpBoxWidth
@@ -2728,15 +2697,14 @@ function AutoDrive:drawHud(vehicle)
 
     AutoDrive:updateButtons(vehicle);
 
-    --local ovWidth  = AutoDrive.Hud.Background.width;
     local ovHeight = AutoDrive.Hud.Background.height;
 
     if vehicle.bEnteringMapMarker == true then
         ovHeight = ovHeight + 0.07;
     end;
-    if vehicle.bUnloadAtTrigger == true then
-        --ovHeight = ovHeight + 0.015;
-    end;
+    --if vehicle.bUnloadAtTrigger == true then
+    --    --ovHeight = ovHeight + 0.015;
+    --end;
 
     local buttonCounter = 0;
     for _,button in pairs(AutoDrive.Hud.Buttons) do
@@ -2747,17 +2715,11 @@ function AutoDrive:drawHud(vehicle)
     end;
     ovHeight = ovHeight + (AutoDrive.Hud.rowCurrent-2) * 0.05;
 
-    --AutoDrive.Hud.Background.ov = Overlay:new(nil, AutoDrive.Hud.Background.img, AutoDrive.Hud.Background.posX, AutoDrive.Hud.Background.posY , ovWidth, ovHeight);
     AutoDrive.Hud.Background.ov.height = ovHeight
-
-    --AutoDrive.Hud.Background.Header.posY = AutoDrive.Hud.posY + ovHeight - AutoDrive.Hud.Background.Header.height;
-    --AutoDrive.Hud.Background.Header.ov = Overlay:new(nil, AutoDrive.Hud.Background.Header.img, AutoDrive.Hud.Background.Header.posX, AutoDrive.Hud.Background.Header.posY , AutoDrive.Hud.Background.Header.width, AutoDrive.Hud.Background.Header.height);
     AutoDrive.Hud.Background.Header.ov.y = AutoDrive.Hud.posY + ovHeight - AutoDrive.Hud.Background.Header.height;
-
-    --AutoDrive.Hud.Background.close_small.posY = AutoDrive.Hud.posY + ovHeight - 0.0101* (g_screenWidth / g_screenHeight);
-    --AutoDrive.Hud.Background.close_small.ov = Overlay:new(nil, AutoDrive.Hud.Background.close_small.img, AutoDrive.Hud.Background.close_small.posX,	AutoDrive.Hud.Background.close_small.posY , AutoDrive.Hud.Background.close_small.width, AutoDrive.Hud.Background.close_small.height);
     AutoDrive.Hud.Background.close_small.ov.y = AutoDrive.Hud.posY + ovHeight - 0.0101* (g_screenWidth / g_screenHeight);
 
+    --
     AutoDrive.Hud.Background.ov:render();
     AutoDrive.Hud.Background.destination.ov:render();
     AutoDrive.Hud.Background.Header.ov:render();
@@ -2944,34 +2906,6 @@ function AutoDrive:removeMapMarker(del)
     AutoDrive:MarkChanged()
 end
 
---function getFillType_new(fillType, implementTypeName)
---	local sFillType = g_i18n:getText("UNKNOWN");
---
---	if FillUtil.fillTypeIndexToDesc[fillType] ~= nil then
---		output1 =  FillUtil.fillTypeIndexToDesc[fillType].nameI18N
---		if string.find(output1, "Missing") then
---			sFillType = g_i18n:getText("UNKNOWN");
---		else
---			sFillType = output1;
---		end;
---	end;
---
---	return sFillType;
---end;
-
---function round(num, idp)
---	if Utils.getNoNil(num, 0) > 0 then
---		local mult = 10^(idp or 0);
---		return math.floor(num * mult + 0.5) / mult;
---	else
---		return 0;
---	end;
---end;
-
---function getPercentage(capacity, level)
---	return level / capacity * 100;
---end;
-
 function AutoDrive:angleBetween(vec1, vec2)
     local scalarproduct_top = vec1.x * vec2.x + vec1.z * vec2.z;
     local scalarproduct_down = math.sqrt(vec1.x * vec1.x + vec1.z*vec1.z) * math.sqrt(vec2.x * vec2.x + vec2.z*vec2.z)
@@ -3027,64 +2961,59 @@ function AutoDrive:detectTraffic(vehicle, wp_next)
             if isAttachedToMe == false and other.components ~= nil then
                 if other.sizeWidth == nil then
                     --print("vehicle " .. other.configFileName .. " has no width");
+                elseif other.sizeLength == nil then
+                    print("vehicle " .. other.configFileName .. " has no length");
+                elseif other.rootNode == nil then
+                    print("vehicle " .. other.configFileName .. " has no root node");
                 else
-                    if other.sizeLength == nil then
-                        print("vehicle " .. other.configFileName .. " has no length");
-                    else
-                        if other.rootNode == nil then
-                            print("vehicle " .. other.configFileName .. " has no root node");
-                        else
-                            local otherWidth = other.sizeWidth;
-                            local otherLength = other.sizeLength;
-                            local otherPos = {};
-                            otherPos.x,otherPos.y,otherPos.z = getWorldTranslation( other.components[1].node ); --getWorldTranslation(_); --
+                    local otherWidth = other.sizeWidth;
+                    local otherLength = other.sizeLength;
+                    local otherPos = {};
+                    otherPos.x,otherPos.y,otherPos.z = getWorldTranslation( other.components[1].node ); --getWorldTranslation(_); --
 
-                            local rx,ry,rz = localDirectionToWorld(other.components[1].node, 0, 0, 1);  --localDirectionToWorld(_,0,0,1);
+                    local rx,ry,rz = localDirectionToWorld(other.components[1].node, 0, 0, 1);  --localDirectionToWorld(_,0,0,1);
 
-                            local otherVectorToWp = {};
-                            otherVectorToWp.x = rx --math.sin(rx);
-                            otherVectorToWp.z = rz --math.cos(rx);
+                    local otherVectorToWp = {};
+                    otherVectorToWp.x = rx --math.sin(rx);
+                    otherVectorToWp.z = rz --math.cos(rx);
 
-                            local otherPos2 = {};
-                            otherPos2.x = otherPos.x + (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)));
-                            otherPos2.y = y;
-                            otherPos2.z = otherPos.z + (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)));
-                            --otherPos2.x,otherPos2.y,otherPos2.z = getWorldTranslation( other.components[2].node );
-                            --local otherVectorToWp = { x = otherPos2.x - otherPos.x, z = otherPos2.z - otherPos.z};
-                            local otherOrtho = { x=-otherVectorToWp.z, z=otherVectorToWp.x };
+                    local otherPos2 = {};
+                    otherPos2.x = otherPos.x + (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)));
+                    otherPos2.y = y;
+                    otherPos2.z = otherPos.z + (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)));
+                    --otherPos2.x,otherPos2.y,otherPos2.z = getWorldTranslation( other.components[2].node );
+                    --local otherVectorToWp = { x = otherPos2.x - otherPos.x, z = otherPos2.z - otherPos.z};
+                    local otherOrtho = { x=-otherVectorToWp.z, z=otherVectorToWp.x };
 
-                            local otherBoundingBox = {};
-                            otherBoundingBox[1] ={  x = otherPos.x + (otherWidth/2) * ( otherOrtho.x / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) + (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z))),
-                                                    z = otherPos.z + (otherWidth/2) * ( otherOrtho.z / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) + (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)))};
-                            otherBoundingBox[2] ={  x = otherPos.x - (otherWidth/2) * ( otherOrtho.x / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) + (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z))),
-                                                    z = otherPos.z - (otherWidth/2) * ( otherOrtho.z / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) + (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)))};
-                            otherBoundingBox[3] ={  x = otherPos.x - (otherWidth/2) * ( otherOrtho.x / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) - (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z))),
-                                                    z = otherPos.z - (otherWidth/2) * ( otherOrtho.z / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) - (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)))};
-                            otherBoundingBox[4] ={  x = otherPos.x + (otherWidth/2) * ( otherOrtho.x / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) - (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z))),
-                                                    z = otherPos.z + (otherWidth/2) * ( otherOrtho.z / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) - (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)))};
+                    local otherBoundingBox = {};
+                    otherBoundingBox[1] ={  x = otherPos.x + (otherWidth/2) * ( otherOrtho.x / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) + (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z))),
+                                            z = otherPos.z + (otherWidth/2) * ( otherOrtho.z / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) + (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)))};
+                    otherBoundingBox[2] ={  x = otherPos.x - (otherWidth/2) * ( otherOrtho.x / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) + (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z))),
+                                            z = otherPos.z - (otherWidth/2) * ( otherOrtho.z / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) + (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)))};
+                    otherBoundingBox[3] ={  x = otherPos.x - (otherWidth/2) * ( otherOrtho.x / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) - (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z))),
+                                            z = otherPos.z - (otherWidth/2) * ( otherOrtho.z / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) - (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)))};
+                    otherBoundingBox[4] ={  x = otherPos.x + (otherWidth/2) * ( otherOrtho.x / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) - (otherLength/2) * (otherVectorToWp.x/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z))),
+                                            z = otherPos.z + (otherWidth/2) * ( otherOrtho.z / (math.abs(otherOrtho.x)+math.abs(otherOrtho.z))) - (otherLength/2) * (otherVectorToWp.z/(math.abs(otherVectorToWp.x)+math.abs(otherVectorToWp.z)))};
 
-                            --[[
-                            drawDebugLine(otherPos.x,y+4,otherPos.z, 1,0,0, otherPos2.x,y+4,otherPos2.z, 1,0,0);
-                            drawDebugLine(otherBoundingBox[1].x, y+4, otherBoundingBox[1].z, 0,0,1, otherBoundingBox[2].x, y+4, otherBoundingBox[2].z, 0,0,1);
-                            drawDebugLine(otherBoundingBox[2].x, y+4, otherBoundingBox[2].z, 0,0,1, otherBoundingBox[3].x, y+4, otherBoundingBox[3].z, 0,0,1);
-                            drawDebugLine(otherBoundingBox[3].x, y+4, otherBoundingBox[3].z, 0,0,1, otherBoundingBox[4].x, y+4, otherBoundingBox[4].z, 0,0,1);
-                            drawDebugLine(otherBoundingBox[4].x, y+4, otherBoundingBox[4].z, 0,0,1, otherBoundingBox[1].x, y+4, otherBoundingBox[1].z, 0,0,1);
-                            --]]
+                    --[[
+                    drawDebugLine(otherPos.x,y+4,otherPos.z, 1,0,0, otherPos2.x,y+4,otherPos2.z, 1,0,0);
+                    drawDebugLine(otherBoundingBox[1].x, y+4, otherBoundingBox[1].z, 0,0,1, otherBoundingBox[2].x, y+4, otherBoundingBox[2].z, 0,0,1);
+                    drawDebugLine(otherBoundingBox[2].x, y+4, otherBoundingBox[2].z, 0,0,1, otherBoundingBox[3].x, y+4, otherBoundingBox[3].z, 0,0,1);
+                    drawDebugLine(otherBoundingBox[3].x, y+4, otherBoundingBox[3].z, 0,0,1, otherBoundingBox[4].x, y+4, otherBoundingBox[4].z, 0,0,1);
+                    drawDebugLine(otherBoundingBox[4].x, y+4, otherBoundingBox[4].z, 0,0,1, otherBoundingBox[1].x, y+4, otherBoundingBox[1].z, 0,0,1);
+                    --]]
 
-                            if AutoDrive:BoxesIntersect(boundingBox, otherBoundingBox) == true then
-                                if other.configFileName ~= nil then
-                                    --print("vehicle " .. vehicle.configFileName .. " has collided with " .. other.configFileName);
-                                else
-                                    if other.name ~= nil then
-                                        --print("vehicle " .. vehicle.configFileName .. " has collided with " .. other.name);
-                                    else
-                                        --print("vehicle " .. vehicle.configFileName .. " has collided with " .. "unknown");
-                                    end;
-                                end;
-                                return true;
-                            end;
-
-                        end;
+                    if AutoDrive:BoxesIntersect(boundingBox, otherBoundingBox) == true then
+                        --if other.configFileName ~= nil then
+                        --    --print("vehicle " .. vehicle.configFileName .. " has collided with " .. other.configFileName);
+                        --else
+                        --    if other.name ~= nil then
+                        --        --print("vehicle " .. vehicle.configFileName .. " has collided with " .. other.name);
+                        --    else
+                        --        --print("vehicle " .. vehicle.configFileName .. " has collided with " .. "unknown");
+                        --    end;
+                        --end;
+                        return true;
                     end;
                 end;
             end;
@@ -3252,7 +3181,10 @@ function AutoDrive:detectAdTrafficOnRoute(vehicle)
                 end;
             end;
         end;
-        if vehicle.ad.wayPoints[vehicle.nCurrentWayPoint+idToCheck] ~= nil and vehicle.ad.wayPoints[vehicle.nCurrentWayPoint+idToCheck+1] ~= nil and not	alreadyOnDualRoute then
+        if vehicle.ad.wayPoints[vehicle.nCurrentWayPoint+idToCheck] ~= nil
+        and vehicle.ad.wayPoints[vehicle.nCurrentWayPoint+idToCheck+1] ~= nil
+        and not alreadyOnDualRoute
+        then
             local dualRoute = false;
             for _,incoming in pairs(vehicle.ad.wayPoints[vehicle.nCurrentWayPoint+idToCheck].incoming) do
                 if incoming == vehicle.ad.wayPoints[vehicle.nCurrentWayPoint+idToCheck+1].id then
@@ -3310,12 +3242,9 @@ function AutoDrive:detectAdTrafficOnRoute(vehicle)
                 --print("Traffic deteced");
                 return true;
             end;
-
         end;
-
     end;
     return false;
-
 end
 
 function AutoDrive:ExportRoutes()

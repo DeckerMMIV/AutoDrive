@@ -1210,18 +1210,6 @@ function init(self)
     self.ad.nToolTipTimer = 6000;
     self.ad.sToolTip = "";
 
-    --init traffic detection:
-    --[[
-    self.coliTrigger = AutoDrive.adOnTrafficCollisionTrigger;
-    self.ad.trafficCollisionTriggers = {};
-    self.ad.collisions = {};
-    if self.aiTrafficCollisionTrigger ~= nil then
-
-        addTrigger(self.aiTrafficCollisionTrigger, 'coliTrigger', self);
-
-    end;
-    --]]
-
     if self.frontloaderAttacher ~= nil or self.typeDesc == "telehandler" then
         if self.frontLoaderCam == nil then
             self.frontLoaderCam = createCamera("frontLoaderCam",  60, 0.02, 200);
@@ -3029,92 +3017,6 @@ function AutoDrive:BoxesIntersect(a,b)
     --print("polygons intersect!");
     return true;
 end
-
-function AutoDrive:adOnTrafficCollisionTrigger(triggerId, otherId, onEnter, onLeave, onStay, otherShapeId)
-    if otherId == self.rootNode then
-        return
-    end;
-
-    if not self.isMotorStarted then
-        return;
-    end;
-
-    if self.aiTrafficCollisionTrigger ~= nil and self.aiTrafficCollisionTrigger == otherId then
-        return;
-    end;
-
-    if otherId == Player.rootNode then
-        return;
-    end;
-
-    if onEnter then
-        local alreadyExists = false;
-        local counter = 0;
-        for _,coli in pairs(self.ad.collisions) do
-            if coli == otherId then
-                alreadyExists = true;
-            end;
-            counter = counter + 1;
-        end;
-        if not alreadyExists then
-            self.ad.collisions[counter+1] = otherId;
-        end;
-    end;
-
-    if onLeave then
-        local alreadyExists = false;
-        for i, coli in pairs(self.ad.collisions) do
-            if coli == otherId then
-                alreadyExists = true;
-            end;
-            if alreadyExists then
-                if self.ad.collisions[i+1] ~= nil then
-                    self.ad.collisions[i] = self.ad.collisions[i+1];
-                else
-                    self.ad.collisions[i] = nil;
-                end;
-            end;
-        end;
-    end;
-
-    --adding traffic vehicle to nodeToVehicle List - code from courseplays traffic detection
-    -- is this a traffic vehicle?
-
-    local vehicle = g_currentMission.nodeToVehicle[otherId];
-    local cm = getCollisionMask(otherId);
-    if vehicle == nil then
-        print("Vehicle unknown. cm: " .. cm);
-    else
-        --if vehicle.debuggedmessage ~= true then
-            print("vehicle already in list. cm: " .. cm);
-            --vehicle.debuggedmessage = true;
-        --end;
-    end;
-
-    local x,y,z = getWorldTranslation( self.components[1].node );
-    local rx,ry,rz = localDirectionToWorld(self.components[1].node, 0, 0, 1);
-    local x1,y1,z1 = getWorldTranslation( otherId );
-    local rx2,ry2,rz2 = localDirectionToWorld(otherId, 0, 0, 1);
-
-    if getDistance(x,z,x1,z1) < 3 then
-        --print("vehicle too close. cm: " .. cm);
-        return;
-    end;
-
-    if vehicle == nil and (cm == 1056768 or cm == 2105410)  then --bitAND(cm, 2097152) ~= 0 then -- if bit21 is part of the collisionMask then set new vehicle	in GCM.NTV
-        print("Adding path vehicle");
-        local pathVehicle = {}
-        pathVehicle.rootNode = otherId
-        pathVehicle.components = {};
-        pathVehicle.components[1] = {};
-        pathVehicle.components[1].node = otherId;
-        pathVehicle.isCpPathvehicle = true
-        pathVehicle.name = "PathVehicle"
-        pathVehicle.sizeLength = 7
-        pathVehicle.sizeWidth = 3
-        g_currentMission.nodeToVehicle[otherId] = pathVehicle
-    end;
-end;
 
 function AutoDrive:detectAdTrafficOnRoute(vehicle)
     --self.ad.wayPoints

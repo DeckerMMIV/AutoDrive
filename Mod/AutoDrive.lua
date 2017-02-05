@@ -78,6 +78,11 @@ function AutoDrive:deleteMap()
 end;
 
 function AutoDrive:load(xmlFile)
+    --
+    self.adActivate     = AutoDrive.adActivate
+    self.adDeactivate   = AutoDrive.adDeactivate
+
+    --
     if g_currentMission.AutoDrive == nil then
         --print("not present");
         g_currentMission.AutoDrive = {};
@@ -757,6 +762,8 @@ function AutoDrive:InputHandling(vehicle, input)
                         end;
                     end
                 end;
+
+                vehicle:adActivate()
             else
                 vehicle.nCurrentWayPoint = 0;
                 vehicle.bDrivingForward = true;
@@ -764,7 +771,7 @@ function AutoDrive:InputHandling(vehicle, input)
                 vehicle.bStopAD = true;
                 vehicle.bUnloading = false;
                 vehicle.bLoading = false;
-                --AutoDrive:deactivate(vehicle,false);
+                --vehicle:adDeactivate(false);
             end;
 
             AutoDrive:updateButtonImageOnOff("input_start_stop", vehicle.bActive)
@@ -1409,7 +1416,21 @@ function AutoDrive:keyEvent(unicode, sym, modifier, isDown)
     end;
 end;
 
-function AutoDrive:deactivate(self,stopVehicle)
+function AutoDrive:adActivate()
+    if self.aiVehicleDirectionNode == nil then
+        self.aiVehicleDirectionNode = self.steeringCenterNode
+    end
+
+    if self.aiVehicleDirectionNode ~= nil then
+        self.debugTexts = {}
+        self.ad.driveStrategyCollision = AIDriveStrategyCollision:new();
+        self.ad.driveStrategyCollision:setAIVehicle(self);
+    else
+        print("AD: self.aiVehicleDirectionNode==nil")
+    end
+end
+
+function AutoDrive:adDeactivate(stopVehicle)
     self.bActive = false;
     self.bInitialized = false;
     self.nCurrentWayPoint = 0;
@@ -1422,6 +1443,11 @@ function AutoDrive:deactivate(self,stopVehicle)
     self.steeringEnabled = true;
 
     self:setCruiseControlState(Drivable.CRUISECONTROL_STATE_OFF);
+
+    if self.ad.driveStrategyCollision then
+        self.ad.driveStrategyCollision:delete()
+        self.ad.driveStrategyCollision = nil
+    end
 end;
 
 function AutoDrive:update(dt)
@@ -1461,6 +1487,13 @@ function AutoDrive:update(dt)
         if InputBinding.hasEvent(InputBinding.ADDebugDeleteWayPoint)    then AutoDrive:InputHandling(self, "input_removeWaypoint") end
         if InputBinding.hasEvent(InputBinding.ADDebugDeleteDestination) then AutoDrive:InputHandling(self, "input_removeDestination") end
     end;
+
+    if self.bActive and self.isServer and self.ad.driveStrategyCollision then
+        self.ad.driveStrategyCollision:update(dt)
+    end
+end
+
+function AutoDrive:updateTick(dt)
 
     local adRecalc = g_currentMission.AutoDrive.Recalculation
     if adRecalc ~= nil and adRecalc.continue == true then
@@ -1621,7 +1654,7 @@ function AutoDrive:update(dt)
     --follow waypoints on route:
 
     if self.bStopAD == true and self.isServer then
-        AutoDrive:deactivate(self,false);
+        self:adDeactivate(false);
         self.bStopAD = false;
         self.bPaused = false;
     end;
@@ -1659,7 +1692,7 @@ function AutoDrive:update(dt)
                 else
                     --print("Autodrive hat ein Problem festgestellt");
                     print("Autodrive hat ein Problem beim Initialisieren festgestellt");
-                    AutoDrive:deactivate(self,true);
+                    self:adDeactivate(true);
                 end;
             else
                 local min_distance = 1.8;
@@ -1716,7 +1749,7 @@ function AutoDrive:update(dt)
                                     xl,yl,zl = worldToLocal(self.components[1].node, self.nTargetX,y,self.nTargetZ);
                                     AIVehicleUtil.driveToPoint(self, dt, 0, true, self.bDrivingForward, xl, zl, 0, false );
                                     self:setCruiseControlState(Drivable.CRUISECONTROL_STATE_OFF);
-                                    AutoDrive:deactivate(self,true);
+                                    self:adDeactivate(true);
                                 end;
                             else
                                 --print("Going into next round");
@@ -1726,7 +1759,7 @@ function AutoDrive:update(dt)
                                     self.nTargetZ = self.ad.wayPoints[self.nCurrentWayPoint].z;
                                 else
                                     print("Autodrive hat ein Problem beim Rundkurs festgestellt");
-                                    AutoDrive:deactivate(self,true);
+                                    self:adDeactivate(true);
                                 end;
                             end;
                         else
@@ -1764,7 +1797,13 @@ function AutoDrive:update(dt)
                     local wayPoints = self.ad.wayPoints
                     local wp_current = wayPoints[self.nCurrentWayPoint];
 
-                    local traffic = AutoDrive:detectTraffic(self, wp_current);
+                    --local traffic = AutoDrive:detectTraffic(self, wp_current);
+                    local traffic = false
+                    if self.ad.driveStrategyCollision then
+                        self.ad.driveStrategyCollision.stopNotificationShown = true
+                        local tX, tZ, moveForwards, maxSpeed, distanceToStop = self.ad.driveStrategyCollision:getDriveData(dt, x,y,z)
+                        traffic = (maxSpeed == 0)
+                    end
 
                     local wp_ahead = wayPoints[self.nCurrentWayPoint+1];
                     if wp_ahead ~= nil then

@@ -237,7 +237,6 @@ function AutoDrive.saveWaypointsAndMarkers(adXml, tagName)
     local zTable = {};
     local outTable = {};
     local incomingTable = {};
-    local out_costTable = {};
     local markerNamesIdsTable = {};
     local markerIDsTable = {};
 
@@ -247,11 +246,10 @@ function AutoDrive.saveWaypointsAndMarkers(adXml, tagName)
         idFullTable[i] = wp.id;
 
         xTable[i] = ("%.2f"):format(wp.x);
-        yTable[i] = ("%.2f"):format(wp.y);
+        yTable[i] = ("%.0f"):format(wp.y);
         zTable[i] = ("%.2f"):format(wp.z);
 
         outTable[i] = table.concat(wp.out, ",");
-        out_costTable[i] = table.concat(wp.out_cost, ",");
 
         local innerIncomingTable = {};
         for _, p2 in pairs(g_currentMission.AutoDrive.mapWayPoints) do
@@ -288,7 +286,6 @@ function AutoDrive.saveWaypointsAndMarkers(adXml, tagName)
         setXMLString(adXml, tagName2 .. ".z" , table.concat(zTable, ","));
         setXMLString(adXml, tagName2 .. ".out" , table.concat(outTable, ";"));
         setXMLString(adXml, tagName2 .. ".incoming" , table.concat(incomingTable, ";") );
-        setXMLString(adXml, tagName2 .. ".out_cost" , table.concat(out_costTable, ";"));
         if markerIDsTable[1] ~= nil then
             setXMLString(adXml, tagName2 .. ".markerID" , table.concat(markerIDsTable, ";"));
             setXMLString(adXml, tagName2 .. ".markerNamesIds" , table.concat(markerNamesIdsTable, ";"));
@@ -306,6 +303,7 @@ function AutoDrive.saveWaypointsAndMarkers(adXml, tagName)
     --
     removeXMLProperty(adXml, tagName .. ".mapmarker")
     removeXMLProperty(adXml, tagName .. ".waypoints.markerNames")
+    removeXMLProperty(adXml, tagName .. ".waypoints.out_cost")
 end
 
 function AutoDrive.loadWaypointsAndMarkers(adXml, tagName)
@@ -358,7 +356,6 @@ function AutoDrive.loadWaypointsAndMarkers(adXml, tagName)
 
     local outSplitted      = splitIntoArrays( getXMLString(adXml, tagName2 .. ".out") )
     local incomingSplitted = splitIntoArrays( getXMLString(adXml, tagName2 .. ".incoming") )
-    local out_costSplitted = splitIntoArrays( getXMLString(adXml, tagName2 .. ".out_cost") )
     local markerIDSplitted = splitIntoArrays( getXMLString(adXml, tagName2 .. ".markerID") )
 
     local markerNamesSplitted = {}
@@ -395,11 +392,6 @@ function AutoDrive.loadWaypointsAndMarkers(adXml, tagName)
                 incoming_counter = incoming_counter +1
             end
 
-            local out_cost = {}
-            for i2,out_costString in pairs(out_costSplitted[i]) do
-                out_cost[i2] = tonumber(out_costString)
-            end
-
             local marker = {}
             for i2, markerName in pairs(markerNamesSplitted[i]) do
                 if markerName ~= "" then
@@ -414,7 +406,6 @@ function AutoDrive.loadWaypointsAndMarkers(adXml, tagName)
                 ,z = tonumber(zTable[i])
                 ,out = out
                 ,incoming = incoming
-                ,out_cost = out_cost
                 ,marker = marker
             }
             wp_counter = wp_counter + 1
@@ -946,7 +937,7 @@ function AutoDrive:ContiniousRecalculation()
                 if i == adRecalc.nextMarker then
                     print(("%s - Recalculating: %s"):format(getDate("%H:%M:%S"), marker.name))
 
-                    local tempAD = AutoDrive:dijkstra(g_currentMission.AutoDrive.mapWayPoints, marker.id,"incoming");
+                    local tempAD = AutoDrive:dijkstra(g_currentMission.AutoDrive.mapWayPoints, marker.id, "incoming");
 
                     for i2,point in pairs(g_currentMission.AutoDrive.mapWayPoints) do
                         point.marker[marker.name] = tempAD.pre[point.id];
@@ -1017,8 +1008,9 @@ function AutoDrive:dijkstra(graph, start, setToUse)
         if shortest_id == -1 then
             workGraph = {}
         else
-            local x1,z1 = workGraph[shortest_id].x, workGraph[shortest_id].z
-            for _, id in pairs(workGraph[shortest_id][setToUse]) do
+            local wgsi = workGraph[shortest_id]
+            local x1,z1 = wgsi.x, wgsi.z
+            for _, id in pairs(wgsi[setToUse]) do
                 local wp = workGraph[id]
                 if nil ~= wp then
                     local alternative = shortest_dist + getDistance(x1,z1, wp.x,wp.z)
@@ -1042,7 +1034,6 @@ function AutoDrive:graphcopy(Graph)
         local id = Graph[i]["id"];
         local out = {};
         local incoming = {};
-        local out_cost = {};
         local marker = {};
 
         for i2 in pairs(Graph[i]["out"]) do
@@ -1051,14 +1042,11 @@ function AutoDrive:graphcopy(Graph)
         for i3 in pairs(Graph[i]["incoming"]) do
             incoming[i3] = Graph[i]["incoming"][i3];
         end;
-        for i4 in pairs(Graph[i]["out_cost"]) do
-            out_cost[i4] = Graph[i]["out_cost"][i4];
-        end;
         for i5 in pairs(Graph[i]["marker"]) do
             marker[i5] = Graph[i]["marker"][i5];
         end;
 
-        Q[i] = createNode(id, out, incoming, out_cost, marker);
+        Q[i] = createNode(id, out, incoming, marker);
 
         local g = Graph[i]
         setXYZ(Q[i], g.x,g.y,g.z)
@@ -1067,13 +1055,12 @@ function AutoDrive:graphcopy(Graph)
     return Q;
 end;
 
-function createNode(id, out, incoming, out_cost, marker)
-    local p = {};
-    p["id"] = id;
-    p["out"] = out;
-    p["incoming"] = incoming;
-    p["out_cost"] = out_cost;
-    p["marker"] = marker;
+function createNode(id, out, incoming, marker)
+    local p = {}
+    p["id"] = id
+    p["out"] = Utils.getNoNil(out, {})
+    p["incoming"] = Utils.getNoNil(incoming, {})
+    p["marker"] = Utils.getNoNil(marker, {})
     return p;
 end
 
@@ -1913,7 +1900,7 @@ function AutoDrive:update(dt)
                 AutoDrive:MarkChanged();
                 local ad = g_currentMission.AutoDrive
                 ad.mapWayPointsCounter = ad.mapWayPointsCounter + 1;
-                ad.mapWayPoints[ad.mapWayPointsCounter] = createNode(ad.mapWayPointsCounter,{},{},{},{});
+                ad.mapWayPoints[ad.mapWayPointsCounter] = createNode(ad.mapWayPointsCounter);
                 setXYZ(ad.mapWayPoints[ad.mapWayPointsCounter], x,y,z)
                 --print("Creating Waypoint #" .. ad.mapWayPointsCounter);
             end;
@@ -1926,18 +1913,16 @@ function AutoDrive:update(dt)
                     local ad = g_currentMission.AutoDrive
                     --edit previous point
                     ad.mapWayPoints[ad.mapWayPointsCounter].out[1] = ad.mapWayPointsCounter+1;
-                    ad.mapWayPoints[ad.mapWayPointsCounter].out_cost[1] = dist
                     --edit current point
                     ad.mapWayPointsCounter = ad.mapWayPointsCounter + 1;
                     --print("Creating Waypoint #" .. ad.mapWayPointsCounter);
-                    ad.mapWayPoints[ad.mapWayPointsCounter] = createNode(ad.mapWayPointsCounter,{},{},{},{});
+                    ad.mapWayPoints[ad.mapWayPointsCounter] = createNode(ad.mapWayPointsCounter);
                     ad.mapWayPoints[ad.mapWayPointsCounter].incoming[1] = ad.mapWayPointsCounter-1;
                     setXYZ(ad.mapWayPoints[ad.mapWayPointsCounter], x,y,z)
                     if self.bcreateModeDual == true then
                         ad.mapWayPoints[ad.mapWayPointsCounter-1].incoming[1] = ad.mapWayPointsCounter;
                         --edit current point
                         ad.mapWayPoints[ad.mapWayPointsCounter].out[1] = ad.mapWayPointsCounter-1;
-                        ad.mapWayPoints[ad.mapWayPointsCounter].out_cost[1] = dist
                     end;
                 end
             end;
@@ -1969,18 +1954,16 @@ function AutoDrive:update(dt)
                     local out_index = 1;
                     if ad.mapWayPoints[ad.mapWayPointsCounter].out[out_index] ~= nil then out_index = out_index+1; end;
                     ad.mapWayPoints[ad.mapWayPointsCounter].out[out_index] = ad.mapWayPointsCounter+1;
-                    ad.mapWayPoints[ad.mapWayPointsCounter].out_cost[out_index] = dist
                     --edit current point
                     ad.mapWayPointsCounter = ad.mapWayPointsCounter + 1;
                     --print("Creating Waypoint #" .. ad.mapWayPointsCounter);
-                    ad.mapWayPoints[ad.mapWayPointsCounter] = createNode(ad.mapWayPointsCounter,{},{},{},{});
+                    ad.mapWayPoints[ad.mapWayPointsCounter] = createNode(ad.mapWayPointsCounter);
                     ad.mapWayPoints[ad.mapWayPointsCounter].incoming[1] = ad.mapWayPointsCounter-1;
                     setXYZ(ad.mapWayPoints[ad.mapWayPointsCounter], x,y,z)
                     if self.bcreateModeDual == true then
                         ad.mapWayPoints[ad.mapWayPointsCounter-1].incoming[2] = ad.mapWayPointsCounter;
                         --edit current point
                         ad.mapWayPoints[ad.mapWayPointsCounter].out[1] = ad.mapWayPointsCounter-1;
-                        ad.mapWayPoints[ad.mapWayPointsCounter].out_cost[1] = dist
                     end;
                 end
             end;
@@ -2485,13 +2468,11 @@ function AutoDrive:draw()
                                 if exists == true then
                                     --print ("Entry exists "..i.. " out_counter: "..out_counter);
                                     mapWayPoints[closest].out[out_counter]      = mapWayPoints[closest].out[i];
-                                    mapWayPoints[closest].out_cost[out_counter] = mapWayPoints[closest].out_cost[i];
                                     out_counter = out_counter +1;
                                 else
                                     if mapWayPoints[closest].out[i] == self.DebugPointsIterated[self.nSelectedDebugPoint].id then
                                         AutoDrive:MarkChanged()
                                         mapWayPoints[closest].out[i] = nil;
-                                        mapWayPoints[closest].out_cost[i] = nil;
 
                                         local incomingExists = false;
                                         local sdp = self.nSelectedDebugPoint
@@ -2516,7 +2497,6 @@ function AutoDrive:draw()
 
                             if exists == false then
                                 mapWayPoints[closest].out[out_counter] = self.DebugPointsIterated[self.nSelectedDebugPoint].id;
-                                mapWayPoints[closest].out_cost[out_counter] = 1;
 
                                 local incomingCounter = 1;
                                 for _,id in pairs(self.DebugPointsIterated[self.nSelectedDebugPoint].incoming) do
@@ -2732,10 +2712,8 @@ function AutoDrive:removeMapWayPoint(del)
             if deleted then
                 if node.out[j + 1] ~= nil then
                     node.out[j] = node.out[j+1];
-                    node.out_cost[j] = node.out_cost[j+1];
                 else
                     node.out[j] = nil;
-                    node.out_cost[j] = nil;
                 end;
             end;
         end;
@@ -3543,9 +3521,6 @@ function AutoDriveMapEvent:writeStream(streamId, connection)
         local incomingTable = {};
         local incomingString = "";
 
-        local out_costTable = {};
-        local out_costString = "";
-
         local markerNamesTable = {};
         local markerNames = "";
 
@@ -3581,9 +3556,6 @@ function AutoDriveMapEvent:writeStream(streamId, connection)
             incomingTable[i] = table.concat(innerIncomingTable, ",");
             --incomingString = incomingString .. ";";
 
-            out_costTable[i] = table.concat(p.out_cost, ",");
-            --out_costString = out_costString .. table.concat(p.out_cost, ",") .. ";";
-
             local markerCounter = 1;
             local innerMarkerNamesTable = {};
             local innerMarkerIDsTable = {};
@@ -3612,7 +3584,6 @@ function AutoDriveMapEvent:writeStream(streamId, connection)
                 streamWriteFloat32(streamId,zTable[i]);
                 streamWriteString(streamId,outTable[i]);
                 streamWriteString(streamId,incomingTable[i]);
-                streamWriteString(streamId,out_costTable[i]);
                 if markerIDsTable[1] ~= nil then
                     streamWriteString(streamId, markerIDsTable[i]);
                     streamWriteString(streamId, markerNamesTable[i]);
@@ -3696,15 +3667,6 @@ function AutoDriveMapEvent:readStream(streamId, connection)
                         end;
                         incoming_counter = incoming_counter +1;
                     end;
-
-                    local out_costString = streamReadString(streamId);
-                    local out_costTable = Utils.splitString("," , out_costString);
-                    wp["out_cost"] = {};
-                    for i2,out_costString in pairs(out_costTable) do
-                        wp["out_cost"][i2] = tonumber(out_costString);
-                    end;
-
-
 
                     local markerIDsString = streamReadString(streamId);
                     local markerIDsTable = Utils.splitString("," , markerIDsString);

@@ -1,3 +1,9 @@
+--
+-- Refactured and code-optimized modification of 'AutoDrive'
+--
+-- Original source made by:   Stephan-S "Balu"  - https://github.com/Stephan-S/AutoDrive
+-- Refacturing by:            Decker_MMIV       - https://github.com/DeckerMMIV/AutoDrive (branch: CodeOptimizations)
+--
 
 AutoDrive = {};
 --
@@ -63,7 +69,7 @@ function AutoDrive:deleteMap()
             setXMLBool(  adXml, "AutoDrive.Recalculation", not g_currentMission.AutoDrive.handledRecalculation)
 
             local tagName = "AutoDrive." .. self.loadedMap
-            AutoDrive.writeWaypointsAndMarkers(adXml, tagName)
+            AutoDrive.saveWaypointsAndMarkers(adXml, tagName)
 
             saveXMLFile(adXml);
         end;
@@ -149,7 +155,7 @@ function AutoDrive:load(xmlFile)
             self.loadedMap = g_currentMission.autoLoadedMap;
             if self.loadedMap ~= nil then
                 local tagName = "AutoDrive." .. self.loadedMap
-                AutoDrive.readWaypointsAndMarkers(adXml, tagName)
+                AutoDrive.loadWaypointsAndMarkers(adXml, tagName)
             end;
 
             local recalculate = getXMLBool(adXml, "AutoDrive.Recalculation");
@@ -223,7 +229,7 @@ function AutoDrive:GetChanged()
     return AutoDrive.config_changed;
 end;
 
-function AutoDrive.writeWaypointsAndMarkers(adXml, tagName)
+function AutoDrive.saveWaypointsAndMarkers(adXml, tagName)
     local idFullTable = {};
     local xTable = {};
     local yTable = {};
@@ -301,7 +307,7 @@ function AutoDrive.writeWaypointsAndMarkers(adXml, tagName)
     removeXMLProperty(adXml, tagName .. ".waypoints.markerNames")
 end
 
-function AutoDrive.readWaypointsAndMarkers(adXml, tagName)
+function AutoDrive.loadWaypointsAndMarkers(adXml, tagName)
     g_currentMission.AutoDrive.mapMarker = {}
     if hasXMLProperty(adXml, tagName..".mapmarkers.marker") then
         local i = 0
@@ -3177,7 +3183,7 @@ function AutoDrive:ExportRoutes()
     setXMLBool(exportXml, "AutoDrive.Recalculation", not g_currentMission.AutoDrive.handledRecalculation);
 
     local tagName = "AutoDrive"
-    AutoDrive.writeWaypointsAndMarkers(exportXml, tagName)
+    AutoDrive.saveWaypointsAndMarkers(exportXml, tagName)
 
     saveXMLFile(exportXml);
 end;
@@ -3192,7 +3198,7 @@ function AutoDrive:ImportRoutes()
         local importXml = loadXMLFile("AutoDrive_XML", importFile);
 
         local tagName = "AutoDrive"
-        AutoDrive.readWaypointsAndMarkers(importXml, tagName)
+        AutoDrive.loadWaypointsAndMarkers(importXml, tagName)
 
         AutoDrive.config_changed = true;
     else

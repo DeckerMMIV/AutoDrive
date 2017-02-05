@@ -309,6 +309,15 @@ function AutoDrive.saveWaypointsAndMarkers(adXml, tagName)
     removeXMLProperty(adXml, tagName .. ".mapmarker")
     removeXMLProperty(adXml, tagName .. ".waypoints.markerNames")
     removeXMLProperty(adXml, tagName .. ".waypoints.out_cost")
+
+    -- 'Railroad crossing'-detecting waypoints
+    local rrc = {}
+    for _,wp in pairs(g_currentMission.AutoDrive.mapWayPoints) do
+        if wp.detectRailroadCrossing ~= nil then
+            rrc[#rrc+1] = wp.id
+        end
+    end
+    setXMLString(adXml, tagName .. ".waypoints.detectRailroadCrossing" , table.concat(rrc, ",") );
 end
 
 function AutoDrive.loadWaypointsAndMarkers(adXml, tagName)
@@ -353,9 +362,11 @@ function AutoDrive.loadWaypointsAndMarkers(adXml, tagName)
 
     local function splitIntoArrays(wholeText)
         local splitted = {}
-        for i, part in pairs(Utils.splitString(";" , wholeText)) do
-            splitted[i] = Utils.splitString("," , part)
-        end;
+        if wholeText ~= nil then
+            for i, part in pairs(Utils.splitString(";" , wholeText)) do
+                splitted[i] = Utils.splitString("," , part)
+            end
+        end
         return splitted
     end
 
@@ -415,10 +426,23 @@ function AutoDrive.loadWaypointsAndMarkers(adXml, tagName)
             }
             wp_counter = wp_counter + 1
             g_currentMission.AutoDrive.mapWayPoints[wp_counter] = wp
+
+            if (wp_counter ~= wp.id) then
+                print(("WARNING: Mismatch in wp_counter(%d) and wp.id(%d)"):format(wp_counter, wp.id))
+            end
         end
     end
     print("AD: Loaded Waypoints: " .. wp_counter);
     g_currentMission.AutoDrive.mapWayPointsCounter = wp_counter;
+
+    -- 'Railroad crossing'-detecting waypoints
+    local rrc = Utils.splitString("," , getXMLString(adXml, tagName .. ".waypoints.detectRailroadCrossing"))
+    for _,id in pairs(rrc) do
+        local wp = g_currentMission.AutoDrive.mapWayPoints[tonumber(id)]
+        if wp ~= nil then
+            wp.detectRailroadCrossing = {}
+        end
+    end
 
     -- Create scene-graph nodes for the mapmarkers
     g_currentMission.AutoDrive.mapMarkerCounter = 0
@@ -1057,6 +1081,8 @@ function AutoDrive:graphcopy(Graph)
 
         local g = Graph[i]
         setXYZ(Q[i], g.x,g.y,g.z)
+
+        Q[i].detectRailroadCrossing = g.detectRailroadCrossing
     end;
 
     return Q;
@@ -1090,6 +1116,30 @@ function AutoDrive:FastShortestPath(Graph,start,markerName, markerID)
 
     return wp_copy;
 end;
+
+function AutoDrive.findClosestRailroadCrossingObj(x,y,z, maxDist)
+    maxDist = Utils.getNoNil(maxDist, 50)
+    local found = {} -- Return empty object if none found
+    -- Search through the train-system tables, in look for what looks like a railroad-crossing object
+    for _,ts in pairs(g_currentMission.trainSystems) do
+        for _,rro in pairs(ts.railroadObjects) do
+            if  nil ~= rro.rootNode
+            and nil ~= rro.doCloseCrossing
+            and nil ~= rro.gates
+            and nil ~= rro.isActive
+            then
+                local x2,_,z2 = getWorldTranslation(rro.rootNode)
+                local dist = getDistance(x2,z2, x,z)
+                if dist < maxDist then
+                    maxDist = dist
+                    found = rro
+                end
+            end
+        end
+    end
+print("findClosestRailroadCrossingObj="..tostring(found.rootNode).."/"..tostring(maxDist))
+    return found
+end
 
 function init(self)
     self.bDisplay = 1;
@@ -1684,8 +1734,13 @@ function AutoDrive:updateTick(dt)
 
                     if self.ad.wayPoints[self.nCurrentWayPoint+1] ~= nil then
                         self.nCurrentWayPoint = self.nCurrentWayPoint + 1;
-                        self.nTargetX = self.ad.wayPoints[self.nCurrentWayPoint].x;
-                        self.nTargetZ = self.ad.wayPoints[self.nCurrentWayPoint].z;
+                        local wp = self.ad.wayPoints[self.nCurrentWayPoint]
+                        self.nTargetX = wp.x
+                        self.nTargetZ = wp.z
+
+                        if wp.detectRailroadCrossing ~= nil then
+                            wp.detectRailroadCrossing = AutoDrive.findClosestRailroadCrossingObj(wp.x,wp.y,wp.z)
+                        end
                     else
                         --print("Last waypoint reached");
                         if self.bUnloadAtTrigger == false then
@@ -1770,11 +1825,16 @@ function AutoDrive:updateTick(dt)
             if self.bActive == true then
                 if self.isServer == true then
                     local wayPoints = self.ad.wayPoints
-                    local wp_current = wayPoints[self.nCurrentWayPoint];
+                    local wp_current = wayPoints[self.nCurrentWayPoint]
 
-                    --local traffic = AutoDrive:detectTraffic(self, wp_current);
                     local traffic = false
-                    if self.ad.driveStrategyCollision then
+                    if wp_current.detectRailroadCrossing ~= nil then
+                        -- If the railroad crossing is being active, then don't drive
+                        if true == wp_current.detectRailroadCrossing.isActive then
+                            traffic = true
+                        end
+                    end
+                    if not traffic and self.ad.driveStrategyCollision then
                         self.ad.driveStrategyCollision.stopNotificationShown = true
                         local tX, tZ, moveForwards, maxSpeed, distanceToStop = self.ad.driveStrategyCollision:getDriveData(dt, x,y,z)
                         traffic = (maxSpeed == 0)
@@ -2446,6 +2506,9 @@ function AutoDrive:draw()
                                     drawDebugLine(point.x, point.y+4, point.z, 0,1,0, neighbor.x, neighbor.y+4, neighbor.z, 1,1,1);
                                 end;
                             end;
+                            if point.detectRailroadCrossing ~= nil then
+                                drawDebugLine(point.x, point.y+4, point.z, 1,0,1, point.x, point.y+6, point.z, 1,0,1);
+                            end
                         end;
                     end;
                 end;
@@ -2480,7 +2543,17 @@ function AutoDrive:draw()
                         self.isBroken = false;
                     end;
 
-                    if self.bShowSelectedDebugPoint == true then
+                    if self.bShowSelectedDebugPoint == false then
+                        if self.bChangeSelectedDebugPoint == true then
+                            self.bChangeSelectedDebugPoint = false
+                            if wp ~= nil then
+                                -- Toggle railroad-crossing detection
+                                AutoDrive.config_changed = true
+                                wp.detectRailroadCrossing = (wp.detectRailroadCrossing == nil and {}) or nil
+                                print(("Waypoint #%d, detect railroadcrossing: %s"):format(wp.id, tostring(wp.detectRailroadCrossing ~= nil)))
+                            end
+                        end
+                    else --if self.bShowSelectedDebugPoint == true then
                         if self.DebugPointsIterated[self.nSelectedDebugPoint] ~= nil then
                             local dp = self.DebugPointsIterated[self.nSelectedDebugPoint]
                             drawDebugLine(x1, y1, z1, 1,1,1, dp.x, dp.y+4, dp.z, 1,1,1);

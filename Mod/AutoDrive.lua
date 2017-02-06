@@ -1447,8 +1447,16 @@ function AutoDrive:adActivate()
     end
 
     if self.aiVehicleDirectionNode ~= nil then
+        -- Reuse base-game's traffic collision method
         self.debugTexts = {}
         self.ad.driveStrategyCollision = AIDriveStrategyCollision:new();
+        -- Though exclude attached implements from collision detection
+        for _, implement in pairs(self.attachedImplements) do
+            if implement.object ~= nil then
+                self.ad.driveStrategyCollision.collisionTriggerByVehicle[implement.object] = 0
+            end
+        end
+        -- "Make it so"
         self.ad.driveStrategyCollision:setAIVehicle(self);
     else
         print("AD: self.aiVehicleDirectionNode==nil")
@@ -1546,6 +1554,8 @@ function AutoDrive:updateTick(dt)
     --	--print("I am the server and start input handling. lets see if they think so too");
     --	AutoDrive:InputHandling(self, self.currentInput);
     --end;
+
+    self.debugTexts = {}
 
     if self.bActive == true and self.isServer then
         self.forceIsActive = true;

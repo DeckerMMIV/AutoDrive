@@ -874,15 +874,17 @@ function AutoDrive:InputHandling(vehicle, input)
         end;
 
         if input == "input_decreaseSpeed" then
-            vehicle.nSpeed = Utils.clamp(vehicle.nSpeed - 1, 2, 100)
+            vehicle.nSpeed = Utils.clamp(vehicle.nSpeed - 1, 1, 100)
         end;
 
         if input == "input_toggleHud" then
             AutoDrive.Hud.showHud = not AutoDrive.Hud.showHud
             if AutoDrive.Hud.showHud then
                 g_currentMission.AutoDrive.showMouse = not g_currentMission.AutoDrive.showMouse
-                InputBinding.setShowMouseCursor(g_currentMission.AutoDrive.showMouse)
+            else
+                g_currentMission.AutoDrive.showMouse = false
             end
+            InputBinding.setShowMouseCursor(g_currentMission.AutoDrive.showMouse)
         end
 
         if input == "input_toggleMouse" then
@@ -1193,26 +1195,7 @@ function init(self)
     self.bCreateMapMarker = false;
     self.bEnteringMapMarker = false;
     self.sEnteredMapMarkerString = "";
---[[
-    if Steerable.load ~= nil then
-        local aNameSearch = {"vehicle.name." .. g_languageShort, "vehicle.name.en", "vehicle.name", "vehicle.storeData.name", "vehicle#type"};
-        local orgSteerableLoad = Steerable.load
-        Steerable.load = function(self,xmlFile)
-            orgSteerableLoad(self,xmlFile)
-            if self.name == nil then
-                for nIndex,sXMLPath in pairs(aNameSearch) do
-                    self.name = getXMLString(self.xmlFile, sXMLPath);
-                    if self.name ~= nil then
-                        break;
-                    end;
-                end;
-                if self.name == nil then
-                    self.name = g_i18n:getText("UNKNOWN")
-                end;
-            end
-        end
-    end;
---]]
+
     self.moduleInitialized = true;
     self.currentInput = "";
     self.previousSpeed = self.nSpeed;
@@ -1863,14 +1846,14 @@ function AutoDrive:updateTick(dt)
                                 { x = wp_current.x - wp_ref.x, z = wp_current.z - wp_ref.z }
                             )
 
-                            if     angle <   3                then self.speed_override = self.nSpeed;
-                            elseif angle >=  3 and angle <  5 then self.speed_override = 38;
-                            elseif angle >=  5 and angle <  8 then self.speed_override = 32;
-                            elseif angle >=  8 and angle < 12 then self.speed_override = 25;
-                            elseif angle >= 12 and angle < 15 then self.speed_override = 15;
-                            elseif angle >= 15 and angle < 20 then self.speed_override = 14;
-                            elseif angle >= 20 and angle < 30 then self.speed_override = 9;
-                            else                                   self.speed_override = 4;
+                            if     angle <  3 then self.speed_override = self.nSpeed;
+                            elseif angle <  5 then self.speed_override = 38;
+                            elseif angle <  8 then self.speed_override = 32;
+                            elseif angle < 12 then self.speed_override = 25;
+                            elseif angle < 15 then self.speed_override = 15;
+                            elseif angle < 20 then self.speed_override = 14;
+                            elseif angle < 30 then self.speed_override = 9;
+                            else                   self.speed_override = 4;
                             end;
 
                             local distance_wps = getDistance(wp_ref.x,wp_ref.z, wp_current.x,wp_current.z);
@@ -2032,14 +2015,14 @@ function AutoDrive:updateTick(dt)
             )
             --print("Angle between: " .. angle );
             local max_distance = 6;
-            if     angle <   1                then max_distance = 20;
-            elseif angle >=  1 and angle <  2 then max_distance = 12;
-            elseif angle >=  2 and angle <  3 then max_distance = 9;
-            elseif angle >=  3 and angle <  5 then max_distance = 6;
-            elseif angle >=  5 and angle <  8 then max_distance = 4;
-            elseif angle >=  8 and angle < 12 then max_distance = 2;
-            elseif angle >= 12 and angle < 15 then max_distance = 1;
-            else                                   max_distance = 0.5;
+            if     angle <  1 then max_distance = 20;
+            elseif angle <  2 then max_distance = 12;
+            elseif angle <  3 then max_distance = 9;
+            elseif angle <  5 then max_distance = 6;
+            elseif angle <  8 then max_distance = 4;
+            elseif angle < 12 then max_distance = 2;
+            elseif angle < 15 then max_distance = 1;
+            else                   max_distance = 0.5;
             end
 
             local dist = getDistance(x,z, wp.x,wp.z)
@@ -2396,7 +2379,7 @@ function AutoDrive:findMatchingWayPoint(veh)
     end;
 
     local rx,_,rz = localDirectionToWorld(veh.components[1].node, 0,0,1);
-    local vehicleVector = {x= math.sin(rx) ,z= math.sin(rz) };
+    local vehicleVector = { x = math.sin(rx) , z = math.sin(rz) };
 
     --drawDebugLine(x1, y1+4, z1, 1,0,0, x1 + math.sin(rx)*2 , y1+4, z1 + math.sin(rz), 1,0,0);
 
@@ -2405,7 +2388,7 @@ function AutoDrive:findMatchingWayPoint(veh)
     local angle = -1;
     local mapWayPoints = g_currentMission.AutoDrive.mapWayPoints
 
-    for i,id in pairs(candidates) do
+    for _, id in pairs(candidates) do
         local point = mapWayPoints[id];
         local nextP = -1;
         if point.out ~= nil then
@@ -2414,9 +2397,9 @@ function AutoDrive:findMatchingWayPoint(veh)
             end;
         end;
         if nextP ~= -1 then
-            local tempVec = {x= nextP.x - point.x, z= nextP.z - point.z};
-            local tempVecToVehicle = { x = point.x - x1, z = point.z - z1 };
-            local tempAngle = AutoDrive:angleBetween(vehicleVector, tempVec);
+            local tempVec          = { x = nextP.x - point.x , z = nextP.z - point.z };
+            local tempVecToVehicle = { x = point.x - x1      , z = point.z - z1 };
+            local tempAngle          = AutoDrive:angleBetween(vehicleVector, tempVec);
             local tempAngleToVehicle = AutoDrive:angleBetween(vehicleVector, tempVecToVehicle);
             local dis = getDistance(point.x,point.z, x1,z1);
 
@@ -2791,43 +2774,37 @@ function AutoDrive:drawHud(vehicle)
 end;
 
 function AutoDrive:removeMapWayPoint(del)
-    AutoDrive:MarkChanged();
 
     --remove node on all out going nodes
     for _, node in pairs(del.out) do
         local mapWaypointNode = g_currentMission.AutoDrive.mapWayPoints[node]
-        local deleted = false;
-        for j, incoming in pairs(mapWaypointNode.incoming) do
-            if incoming == del.id then
+        local deleted = false
+        for j, incoming_id in pairs(mapWaypointNode.incoming) do
+            if incoming_id == del.id then
                 deleted = true
             end
             if deleted then
-                if mapWaypointNode.incoming[j + 1] ~= nil then
-                    mapWaypointNode.incoming[j] = mapWaypointNode.incoming[j + 1];
-                else
-                    mapWaypointNode.incoming[j] = nil;
-                end;
-            end;
-
-        end;
-    end;
+                if mapWaypointNode.incoming[j] ~= nil then
+                    mapWaypointNode.incoming[j] = mapWaypointNode.incoming[j + 1]
+                end
+            end
+        end
+    end
 
     --remove node on all incoming nodes
     for _, node in pairs(g_currentMission.AutoDrive.mapWayPoints) do
-        local deleted = false;
+        local deleted = false
         for j,out_id in pairs(node.out) do
             if out_id == del.id then
-                deleted = true;
-            end;
+                deleted = true
+            end
             if deleted then
-                if node.out[j + 1] ~= nil then
-                    node.out[j] = node.out[j+1];
-                else
-                    node.out[j] = nil;
-                end;
-            end;
-        end;
-    end;
+                if node.out[j] ~= nil then
+                    node.out[j] = node.out[j+1]
+                end
+            end
+        end
+    end
 
     --adjust ids for all succesive nodes :(
     local deleted = false;
@@ -2868,6 +2845,7 @@ function AutoDrive:removeMapWayPoint(del)
         g_currentMission.AutoDrive.mapWayPointsCounter = g_currentMission.AutoDrive.mapWayPointsCounter - 1;
     end;
 
+--[[
     --adjust all mapmarkers
     local deletedMarker = false;
     for i, marker in pairs(g_currentMission.AutoDrive.mapMarker) do
@@ -2885,21 +2863,29 @@ function AutoDrive:removeMapWayPoint(del)
             marker.id = marker.id -1;
         end;
     end;
+--]]
+    AutoDrive:removeMapMarker(del)
+
+    AutoDrive:MarkChanged();
 end;
 
 function AutoDrive:removeMapMarker(del)
     --adjust all mapmarkers
+    local mapMarker = g_currentMission.AutoDrive.mapMarker
     local deletedMarker = false;
-    for i, marker in pairs(g_currentMission.AutoDrive.mapMarker) do
+    for i, marker in pairs(mapMarker) do
         if marker.id == del.id then
             deletedMarker = true;
         end;
         if deletedMarker then
-            if g_currentMission.AutoDrive.mapMarker[i+1] ~= nil then
-                g_currentMission.AutoDrive.mapMarker[i] =  g_currentMission.AutoDrive.mapMarker[i+1];
+            if mapMarker[i+1] ~= nil then
+                mapMarker[i] = mapMarker[i+1];
             else
-                g_currentMission.AutoDrive.mapMarker[i] = nil;
+                mapMarker[i] = nil;
             end;
+        end;
+        if marker.id > del.id then
+            marker.id = marker.id -1;
         end;
     end;
     AutoDrive:MarkChanged()

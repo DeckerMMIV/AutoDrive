@@ -2441,6 +2441,23 @@ function AutoDrive:findMatchingWayPoint(veh)
     return closest;
 end;
 
+function drawArrow(src, dst, r,g,b,a)
+    local dx,dz = src.x-dst.x, src.z-dst.z
+    local dist = Utils.vector2Length(dx,dz)
+
+    local x1,y1,z1 = dist,0, math.min(1,dist)
+    local x2,y2,z2 = dist,0,-math.min(1,dist)
+
+    local nx,nz = dx/dist,dz/dist
+    x1 , z1 = x1*nx - z1*nz , x1*nz + z1*nx
+    x2 , z2 = x2*nx - z2*nz , x2*nz + z2*nx
+
+    x1,y1,z1 = x1+dst.x , y1+src.y , z1+dst.z
+    x2,y2,z2 = x2+dst.x , y2+src.y , z2+dst.z
+
+    drawDebugTriangle(dst.x,dst.y,dst.z, x1,y1,z1, x2,y2,z2, r,g,b,a, false);
+end
+
 function AutoDrive:draw()
 
     if self.moduleInitialized == true then
@@ -2455,39 +2472,11 @@ function AutoDrive:draw()
                 local wp2 = wayPoints[self.nCurrentWayPoint+1]
                 if wp0 ~= nil then
                     drawDebugLine(wp0.x, wp0.y+4, wp0.z, 0,1,1, wpCurr.x, wpCurr.y+4, wpCurr.z, 1,1,1);
-
-                    local dx,dz = wp0.x-wpCurr.x, wp0.z-wpCurr.z
-                    local dist = Utils.vector2Length(dx,dz)
-
-                    local x1,y1,z1 = dist,0, 1
-                    local x2,y2,z2 = dist,0,-1
-
-                    local nx,nz = dx/dist,dz/dist
-                    x1 , z1 = x1*nx - z1*nz , x1*nz + z1*nx
-                    x2 , z2 = x2*nx - z2*nz , x2*nz + z2*nx
-
-                    x1,y1,z1 = x1+wpCurr.x , y1+wpCurr.y , z1+wpCurr.z
-                    x2,y2,z2 = x2+wpCurr.x , y2+wpCurr.y , z2+wpCurr.z
-
-                    drawDebugTriangle(wpCurr.x, wpCurr.y, wpCurr.z, x1,y1,z1, x2,y2,z2, 0,0,1,0.5, false);
+                    drawArrow(wp0, wpCurr, 0,0,1,0.5)
                 end;
                 if wp2 ~= nil then
                     drawDebugLine(wpCurr.x, wpCurr.y+4, wpCurr.z, 0,1,1, wp2.x, wp2.y+4, wp2.z, 1,1,1);
-
-                    local dx,dz = wpCurr.x-wp2.x, wpCurr.z-wp2.z
-                    local dist = Utils.vector2Length(dx,dz)
-
-                    local x1,y1,z1 = dist,0, 1
-                    local x2,y2,z2 = dist,0,-1
-
-                    local nx,nz = dx/dist,dz/dist
-                    x1 , z1 = x1*nx - z1*nz , x1*nz + z1*nx
-                    x2 , z2 = x2*nx - z2*nz , x2*nz + z2*nx
-
-                    x1,y1,z1 = x1+wp2.x , y1+wp2.y , z1+wp2.z
-                    x2,y2,z2 = x2+wp2.x , y2+wp2.y , z2+wp2.z
-
-                    drawDebugTriangle(wp2.x, wp2.y, wp2.z, x1,y1,z1, x2,y2,z2, 0,0,1,0.5, false);
+                    drawArrow(wpCurr, wp2, 0,0,1,0.5)
                 end;
             end
         end;
@@ -2529,6 +2518,7 @@ function AutoDrive:draw()
                                     drawDebugLine(point.x, point.y+4, point.z, 1,0,0, neighbor.x, neighbor.y+4, neighbor.z, 1,0,0);
                                 else
                                     drawDebugLine(point.x, point.y+4, point.z, 0,1,0, neighbor.x, neighbor.y+4, neighbor.z, 1,1,1);
+                                    drawArrow(point, neighbor, 0,0.25,1,0.25)
                                 end;
                             end;
                             if point.detectRailroadCrossing ~= nil then
